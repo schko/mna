@@ -1,9 +1,9 @@
-from mna.src.modalities.eye_process import plot_segments, continuous_to_discrete, process_eye
+from mna.modalities.eye_process import plot_segments, continuous_to_discrete, process_eye
 import pandas as pd
 
 
 def process_session_eye(rns_data, event_df, eye_channel='Unity_ViveSREyeTracking', detect_blink=True, plot_frequency=20,
-                        plot_eye_snippet=40):
+                        plot_eye_snippet=40, save_path='../output/'):
     """
     event_df: dataframe with timestamps start and end to iterate over
     ecg_channel:
@@ -50,7 +50,7 @@ def process_session_eye(rns_data, event_df, eye_channel='Unity_ViveSREyeTracking
 
         if plot_eye_result:
             plot_segments(eye_data, row.ppid, row.session, row.block, row.number_in_block, timestamp_start,
-                          timestamp_end=plot_timestamp_end, classifiers=classifiers)
+                          timestamp_end=plot_timestamp_end, classifiers=classifiers, save_path=save_path)
         if 'NSLR' in classifiers:  # default to NSLR
             classifier = "NSLR"
         elif 'REMODNAV' in classifiers:

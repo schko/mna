@@ -1,0 +1,8 @@
+{ "StreamName":"Unity.TrialInfo",
+  "ChannelNames":[
+    "ppid", "session", "block", "number_in_block", "trial",
+    "density", "damage",
+    "source", "destination"
+  ],
+  "NominalSamplingRate":  1,
+  "GroupChannelsInPlot":  [5, 7]}

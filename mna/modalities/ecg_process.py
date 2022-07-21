@@ -173,3 +173,4 @@ def plot_ecg(df, working_data, measures, timestamp_start=0, timestamp_end=None):
         working_data_snippet['removed_beats_y'] = working_data['removed_beats_y'][
                                                   :len(working_data_snippet['removed_beats'])]
     plot_object = ecg_plotter(working_data_snippet, measures, start_time=timestamp_start, show=False, title='ECG')
+    return plot_object

@@ -1,0 +1,8 @@
+{ "StreamName":"Unity.ChunkInfo",
+  "ChannelNames":[
+    "chunk",
+    "block_condition"
+  ],
+  "NominalSamplingRate":  1,
+  "GroupChannelsInPlot":  [2],
+  "Format":  "string"}

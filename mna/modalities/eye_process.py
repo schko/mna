@@ -1,17 +1,13 @@
 import warnings
 warnings.filterwarnings('ignore')
-
+import os
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
 from cateyes import (plot_segmentation, plot_trajectory,
                     classify_nslr_hmm, classify_remodnav,
                     discrete_to_continuous, continuous_to_discrete)
-from cateyes import sample_data_path
-
-
 
 # Calculate vergence, combined eye gaze data
 
@@ -168,7 +164,8 @@ def process_eye(df, timestamp_start=0, timestamp_end=None, detect_blink=True, ey
     return eye_data, intervals_nan
 
 
-def plot_segments(eye_data, ppid, session, block, number_in_block, timestamp_start, timestamp_end, classifiers):
+def plot_segments(eye_data, ppid, session, block, number_in_block, timestamp_start, timestamp_end, classifiers,
+                  save_path='../output/'):
     # convert continuous ids and descriptions to discrete timepoints and descriptions
     subset_eye_data = eye_data[eye_data['timestamp'] <= timestamp_end]
     for classifier in classifiers:
@@ -176,6 +173,7 @@ def plot_segments(eye_data, ppid, session, block, number_in_block, timestamp_sta
                                                        subset_eye_data[classifier + "_Segment"],
                                                        subset_eye_data[classifier + "_Class"])
         # plot the classification results
+        if not os.path.isdir(save_path): os.makedirs(save_path)
         fig, axes = plt.subplots(2, figsize=(15, 6), sharex=True)
         fig.suptitle(classifier, fontsize=10)
         plot_segmentation(eye_data['x_deg'], eye_data['timestamp'], segments=(seg_time, seg_class), events=None,
@@ -185,7 +183,7 @@ def plot_segments(eye_data, ppid, session, block, number_in_block, timestamp_sta
                           show_legend=False, color_dict=color_dict);
         plt.xlabel('time (sec)', fontsize=18)
         plt.savefig(
-            f"results/{ppid}_{session}_{block}_{number_in_block}_{classifier}_segments_{timestamp_start}s_{timestamp_end}.png")
+            f"{save_path}{ppid}_{session}_{block}_{number_in_block}_{classifier}_segments_{timestamp_start}s_{timestamp_end}.png")
         plt.close()
 
     if 'NSLR' in classifiers and 'REMODNAV' in classifiers:
@@ -206,12 +204,12 @@ def plot_segments(eye_data, ppid, session, block, number_in_block, timestamp_sta
         axes[3].set_yticklabels(["", "No Saccade", "Saccade"])
         plt.xlabel("Time");
         plt.savefig(
-            f"results/{ppid}_{session}_{block}_{number_in_block}_saccade_masks_{timestamp_start}s_{timestamp_end}.png")
+            f"{save_path}{ppid}_{session}_{block}_{number_in_block}_saccade_masks_{timestamp_start}s_{timestamp_end}.png")
         plt.close()
 
         df_melt = subset_eye_data[["NSLR_Class", "REMODNAV_Class"]].melt(var_name="Classifier",
                                                                          value_name="Prediction")
-        sns.countplot(x="Prediction", hue="Classifier", data=df_melt);
+        sns.countplot(x="Prediction", hue="Classifier", data=df_melt)
         plt.savefig(
-            f"results/ppid_{ppid}_session_{session}_block_{block}_trial_{number_in_block}_classifier_counts_{timestamp_start}s_{timestamp_end}.png")
+            f"{save_path}/ppid_{ppid}_session_{session}_block_{block}_trial_{number_in_block}_classifier_counts_{timestamp_start}s_{timestamp_end}.png")
         plt.close()

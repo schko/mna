@@ -3,9 +3,9 @@ import numpy as np
 import autoreject
 import matplotlib.pyplot as plt
 import pandas as pd
+import os
 
-
-def process_session_eeg(rns_data, event_df, eeg_channel='BioSemi', eeg_montage='biosemi64', save_path='results/',
+def process_session_eeg(rns_data, event_df, eeg_channel='BioSemi', eeg_montage='biosemi64', save_path='../output/',
                         run_autoreject=True, autoreject_epochs=20, run_ica=True, average_reference=True, low_cut=0.1,
                         hi_cut=30, plot_epochs=True):
     voice_detected = event_df.spoken_difficulty.notnull()
@@ -43,7 +43,7 @@ def process_session_eeg(rns_data, event_df, eeg_channel='BioSemi', eeg_montage='
     if run_autoreject:
         ar = autoreject.AutoReject(random_state=11,
                                    n_jobs=1, verbose=False)
-        ar.fit(epochs[:20])  # fit on a few epochs to save time
+        ar.fit(epochs[:autoreject_epochs])  # fit on a few epochs to save time
         epochs_ar, reject_log = ar.transform(epochs, return_log=True)
         event_df.loc[voice_detected, 'autorejected'] = reject_log.bad_epochs
         epochs = epochs_ar
@@ -59,6 +59,7 @@ def process_session_eeg(rns_data, event_df, eeg_channel='BioSemi', eeg_montage='
         ica.fit(epochs)
 
     if plot_epochs:
+        if not os.path.isdir(save_path): os.makedirs(save_path)
         ppid = voice_recognized_df.iloc[0].ppid
         session = voice_recognized_df.iloc[0].session
         block = voice_recognized_df.iloc[0].block

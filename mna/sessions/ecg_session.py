@@ -1,10 +1,10 @@
 import pandas as pd
-from mna.src.modalities.ecg_process import process_ecg, plot_ecg
+from mna.modalities.ecg_process import process_ecg, plot_ecg
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
-
-def process_session_ecg(rns_data, event_df, low_bpm=40, high_bpm=200, save_path='results/', ecg_channel='BioSemi',
+def process_session_ecg(rns_data, event_df, low_bpm=40, high_bpm=200, save_path='../output/', ecg_channel='BioSemi',
                         plot_frequency=20, plot_ecg_snippet=40):
     """
     event_df: dataframe with timestamps start and end to iterate over
@@ -43,6 +43,7 @@ def process_session_ecg(rns_data, event_df, low_bpm=40, high_bpm=200, save_path=
                                                                                timestamp_start=timestamp_start,
                                                                                timestamp_end=timestamp_end)
         if not failed_to_detect and plot_ecg_result:
+            if not os.path.isdir(save_path): os.makedirs(save_path)
             plot_ecg(df, working_data, measures,
                      timestamp_start=timestamp_start, timestamp_end=plot_timestamp_end)
             plt.savefig(

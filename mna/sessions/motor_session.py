@@ -1,8 +1,9 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
-def process_session_motor(rns_data, event_df, motor_channel='Unity_MotorInput', save_path='results/',
+def process_session_motor(rns_data, event_df, motor_channel='Unity_MotorInput', save_path='../output/',
                           plot_motor_result=True, plot_motor_snippet=30, plot_frequency=10):
     if motor_channel in rns_data.keys():
         df = pd.DataFrame(rns_data[motor_channel][0], columns=rns_data[motor_channel][1],

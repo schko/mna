@@ -1,0 +1,5 @@
+{ "StreamName":"PubSub",
+  "NumChannels":1,
+  "ChannelNames":[
+    "Text"],
+  "NominalSamplingRate":  1}

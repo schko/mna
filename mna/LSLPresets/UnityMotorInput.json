@@ -1,0 +1,5 @@
+{ "StreamName":"Unity.MotorInput",
+  "ChannelNames":[
+    "steer_input", "throttle_input", "brake_input", "clutch_input"
+  ],
+  "NominalSamplingRate":  1}

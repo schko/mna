@@ -3,7 +3,7 @@ import pandas as pd
 
 
 def process_session_eye(rns_data, event_df, eye_channel='Unity_ViveSREyeTracking', detect_blink=True, plot_frequency=20,
-                        plot_eye_snippet=40, save_path='../output/'):
+                        plot_eye_snippet=40, save_path='../output/', classifiers=None):
     """
     event_df: dataframe with timestamps start and end to iterate over
     ecg_channel:
@@ -11,9 +11,11 @@ def process_session_eye(rns_data, event_df, eye_channel='Unity_ViveSREyeTracking
     plot_ecg_snippet: plot how many seconds per plot?
     """
 
+    if classifiers is None:
+        classifiers = ['NSLR', 'REMODNAV']
+
     df = pd.DataFrame(rns_data[eye_channel][0], columns=rns_data[eye_channel][1],
                       index=rns_data[eye_channel][2]['ChannelNames']).T
-    classifiers = ['NSLR', 'REMODNAV']
     plot_frequency = plot_frequency  # plot every how many trials?
     plot_eye_snippet = plot_eye_snippet  # False or an integer number of seconds representing duration
     eye_start_time = df.index[0]

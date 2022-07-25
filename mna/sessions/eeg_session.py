@@ -5,11 +5,14 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 
-def process_session_eeg(rns_data, event_df, eeg_channel='BioSemi', eeg_montage='biosemi64', save_path='../output/',
+
+def process_session_eeg(rns_data, event_df, event_column='spoken_difficulty_encoded', eeg_channel='BioSemi',
+                        eeg_montage='biosemi64', save_path='../output/',
                         run_autoreject=True, autoreject_epochs=20, run_ica=True, average_reference=True, low_cut=0.1,
                         hi_cut=30, plot_epochs=True):
-    voice_detected = event_df.spoken_difficulty.notnull()
-    voice_recognized_df = event_df[voice_detected]
+
+    event_detected = event_df[event_column].notnull()
+    event_recognized_df = event_df[event_detected]
     eeg_channel_names = mne.channels.make_standard_montage(eeg_montage).ch_names
     df = pd.DataFrame(rns_data[eeg_channel][0], columns=rns_data[eeg_channel][1],
                       index=rns_data[eeg_channel][2]['ChannelNames']).T
@@ -28,15 +31,12 @@ def process_session_eeg(rns_data, event_df, eeg_channel='BioSemi', eeg_montage='
     if low_cut or hi_cut:
         raw.filter(l_freq=low_cut, h_freq=hi_cut)
 
-
-
-    trial_start_time = voice_recognized_df.trial_start_time - starting_time_s  # reference for mne
-    spoken_difficulty = voice_recognized_df.spoken_difficulty.replace(to_replace=['easy', 'hard'],
-                                                                      value=[1, 2])
+    trial_start_time = event_recognized_df.trial_start_time - starting_time_s  # reference for mne
+    event_values = event_recognized_df[event_column].values
 
     events = np.column_stack((trial_start_time.values * freq,
-                              np.zeros(len(voice_recognized_df), dtype=int),
-                              spoken_difficulty.values)).astype(int)
+                              np.zeros(len(event_recognized_df), dtype=int),
+                              event_values)).astype(int)
     event_dict = dict(easy=1, hard=2)
     epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=- 0.2, tmax=3, preload=True)
     reject_log = None
@@ -45,7 +45,7 @@ def process_session_eeg(rns_data, event_df, eeg_channel='BioSemi', eeg_montage='
                                    n_jobs=1, verbose=False)
         ar.fit(epochs[:autoreject_epochs])  # fit on a few epochs to save time
         epochs_ar, reject_log = ar.transform(epochs, return_log=True)
-        event_df.loc[voice_detected, 'autorejected'] = reject_log.bad_epochs
+        event_df.loc[event_detected, 'autorejected'] = reject_log.bad_epochs
         epochs = epochs_ar
 
     if run_ica:
@@ -60,10 +60,10 @@ def process_session_eeg(rns_data, event_df, eeg_channel='BioSemi', eeg_montage='
 
     if plot_epochs:
         if not os.path.isdir(save_path): os.makedirs(save_path)
-        ppid = voice_recognized_df.iloc[0].ppid
-        session = voice_recognized_df.iloc[0].session
-        block = voice_recognized_df.iloc[0].block
-        trial = voice_recognized_df.iloc[0].number_in_block
+        ppid = event_recognized_df.iloc[0].ppid
+        session = event_recognized_df.iloc[0].session
+        block = event_recognized_df.iloc[0].block
+        trial = event_recognized_df.iloc[0].number_in_block
 
         easy = epochs['easy'].average()
         hard = epochs['hard'].average()
@@ -72,14 +72,14 @@ def process_session_eeg(rns_data, event_df, eeg_channel='BioSemi', eeg_montage='
                                         'lower right right']],
                                       figsize=(15, 12), constrained_layout=True)
 
-        fig1 = easy.plot(spatial_colors=True, axes=axd['left'])
-        fig2 = hard.plot(spatial_colors=True, axes=axd['right'])
-        fig3 = epochs['easy'].plot_psd_topomap(bands=[(8, 12, 'Alpha'), (12, 30, 'Beta')], ch_type='eeg',
-                                               normalize=True,
-                                               axes=[axd['lower left left'], axd['lower left right']])
-        fig4 = epochs['hard'].plot_psd_topomap(bands=[(8, 12, 'Alpha'), (12, 30, 'Beta')], ch_type='eeg',
-                                               normalize=True,
-                                               axes=[axd['lower right left'], axd['lower right right']])
+        easy.plot(spatial_colors=True, axes=axd['left'])
+        hard.plot(spatial_colors=True, axes=axd['right'])
+        epochs['easy'].plot_psd_topomap(bands=[(8, 12, 'Alpha'), (12, 30, 'Beta')], ch_type='eeg',
+                                        normalize=True,
+                                        axes=[axd['lower left left'], axd['lower left right']])
+        epochs['hard'].plot_psd_topomap(bands=[(8, 12, 'Alpha'), (12, 30, 'Beta')], ch_type='eeg',
+                                        normalize=True,
+                                        axes=[axd['lower right left'], axd['lower right right']])
         axd['left'].title.set_text('Average (easy)')
         axd['right'].title.set_text('Average (hard)')
         axd['lower left left'].title.set_text('Alpha (8-12Hz)')

@@ -13,12 +13,12 @@ Also supports epoch- or event-level data quality reports and interactive review 
 
 ## Table of Contents
 - [Setup](#setup)
-- [Raw data and events](#Raw data and events)
+- [Raw data and events](#raw-data-and-events)
 - [Modality analyses](#Modality-analyses)
-  - [Electrocardiogram (ECG)](#Electrocardiogram-(ECG))
-  - [Eye tracking (ET)](#Eye tracking-(ET))
-  - [Electroencephalography (EEG)](#Electroencephalography-(EEG))
-  - [Motor](#Motor)
+  - [Electrocardiogram (ECG)](#electrocardiogram-ecg)
+  - [Eye tracking (ET)](#eye-tracking-et)
+  - [Electroencephalography (EEG)](#electroencephalography-eeg)
+  - [Motor](#motor)
 - [Interactive plotting](#interactive-plotting)
 
 ## Setup

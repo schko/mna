@@ -1,6 +1,6 @@
 from mna.modalities.eye_process import plot_segments, continuous_to_discrete, process_eye
 import pandas as pd
-
+from collections import defaultdict
 
 def process_session_eye(rns_data, event_df, eye_channel='Unity_ViveSREyeTracking', detect_blink=True, plot_frequency=20,
                         plot_eye_snippet=40, save_path='../output/', classifiers=None):
@@ -21,8 +21,8 @@ def process_session_eye(rns_data, event_df, eye_channel='Unity_ViveSREyeTracking
     eye_start_time = df.index[0]
     eye_end_time = df.index[-1]
     count = 0
-    eye_results = []
-    class_onsets = []
+    eye_results = defaultdict(list)
+    class_onsets = defaultdict(list)
     for index, row in event_df.iterrows():
         if plot_frequency > 0 and count % plot_frequency == 0:
             plot_eye_result = True
@@ -46,26 +46,21 @@ def process_session_eye(rns_data, event_df, eye_channel='Unity_ViveSREyeTracking
         if eye_data.shape[0] == 0 or (
                 len(intervals_nan) == 1 and intervals_nan[0][1] == eye_data.timestamp.iloc[-1] and intervals_nan[0][
             0] == eye_data.timestamp.iloc[0]):
-            eye_results.append({})
-            class_onsets.append({})
+            for classifier in classifiers:
+                eye_results[classifier].append({})
+                class_onsets[classifier].append({})
             continue
 
         if plot_eye_result:
             plot_segments(eye_data, row.ppid, row.session, row.block, row.number_in_block, timestamp_start,
                           timestamp_end=plot_timestamp_end, classifiers=classifiers, save_path=save_path)
-        if 'NSLR' in classifiers:  # default to NSLR
-            classifier = "NSLR"
-        elif 'REMODNAV' in classifiers:
-            classifier = "REMODNAV"
-        else:
-            classifier = None
-        if classifier:
+        for classifier in classifiers:
             (seg_time, seg_class) = continuous_to_discrete(eye_data['timestamp'],
                                                            eye_data[classifier + "_Segment"],
                                                            eye_data[classifier + "_Class"])
             seg_df = pd.DataFrame([seg_time, seg_class]).T
             seg_df.columns = ['seg_time', 'seg_class']
-            class_onsets.append(seg_df.values.tolist())
+            class_onsets[classifier].append(seg_df.values.tolist())
             seg_df.seg_time = pd.to_numeric(seg_df.seg_time)
             seg_df.loc[:, 'duration'] = seg_df['seg_time'].diff().shift(-1)
             seg_df['duration'].iloc[-1] = eye_data['timestamp'].iloc[-1] - seg_df['seg_time'].iloc[-1]
@@ -74,9 +69,11 @@ def process_session_eye(rns_data, event_df, eye_channel='Unity_ViveSREyeTracking
                 seg_df_summary[[('seg_time', 'count'), ('seg_time', 'min'), ('duration', 'mean')]])
             seg_df_summary.columns = seg_df_summary.columns.droplevel(0)
             seg_df_summary.columns = [f"{classifier}_count", f"{classifier}_first_onset", f"{classifier}_mean_duration"]
-            eye_results.append(seg_df_summary.to_dict())
+            eye_results[classifier].append(seg_df_summary.to_dict())
         count += 1
-    eye_results = pd.json_normalize(eye_results)
-    eye_results['class_onsets'] = class_onsets
-    post_processed_event_df = pd.concat([event_df, eye_results], axis=1)
+    post_processed_event_df = event_df.copy()
+    for classifier in classifiers:
+        eye_results_df = pd.json_normalize(eye_results[classifier])
+        eye_results_df[f'{classifier}_class_onsets'] = class_onsets[classifier]
+        post_processed_event_df = pd.concat([post_processed_event_df, eye_results_df], axis=1)
     return post_processed_event_df

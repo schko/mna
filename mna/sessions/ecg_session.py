@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
+
 def process_session_ecg(rns_data, event_df, low_bpm=40, high_bpm=200, save_path='../output/', ecg_channel='BioSemi',
                         plot_frequency=20, plot_ecg_snippet=40):
     """

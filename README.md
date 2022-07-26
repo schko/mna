@@ -27,7 +27,7 @@ Also supports epoch- or event-level data quality reports and interactive review 
 
 Pull this repo
 
-```git pull ...```
+```git pull https://github.com/schko/mna.git```
 
 Set up a conda environment by running the following command
 

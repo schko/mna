@@ -1,5 +1,7 @@
 # Multimodal Neurophysiological Analysis
 
+(in development)
+
 ## MNA
 
 A lightweight, Python package for analysis of eye tracking, electroencephalography (EEG), electrocardiogram (ECG) and 

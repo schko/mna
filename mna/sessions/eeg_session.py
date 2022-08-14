@@ -43,16 +43,31 @@ def process_session_eeg(rns_data, event_df, eeg_channel='BioSemi', eeg_montage='
     # Band power calculation
     win_size = 1024
     band = np.asarray(bands_limits)
-    band_power = np.empty([len(epochs), 64])
-    eeg_channel_names_alpha = [chan_name + "Band Power" for chan_name in eeg_channel_names]
+    band_power_epochs = np.empty([len(epochs), 64])
+    eeg_channel_band_power = [chan_name + " Freq Band Power" for chan_name in eeg_channel_names]
 
+    # Approach with MNE_FEATURES
     for i in range(len(epochs)):
         data_mne = np.squeeze(epochs[i].get_data())
         pow_freq_band = compute_pow_freq_bands(sfreq=freq, data=data_mne, freq_bands=band, normalize=False,
                                                     psd_params={'welch_n_fft': win_size, 'welch_n_per_seg': win_size})
-        band_power[i, :] = pow_freq_band
+        band_power_epochs[i, :] = pow_freq_band
 
-    band_power_df = pd.DataFrame(data=band_power, index=voice_recognized_df.index, columns=eeg_channel_names_alpha)
+    # Approach with SCIPY.SIGNAL.WELCH
+    # for i in range(len(epochs)):
+    #     for ii in range(64):
+    #         data_signal = np.squeeze(epochs[i].get_data())
+    #         freqs, psd = signal.welch(data_signal[ii], freq, nfft=win_size, nperseg=win_size, window='hamming')
+    #
+    #         freq_res = freqs[1] - freqs[0]
+    #
+    #         band_power = simps(psd[(freqs >= band[0]) & (freqs <= band[1])], dx=freq_res)
+    #         # band_power = trapezoid(psd[(freqs >= band[0]) & (freqs <= band[1])], dx=freq_res)
+    #
+    #         band_power_epochs[i, ii] = band_power
+
+    band_power_df = pd.DataFrame(data=band_power_epochs, index=voice_recognized_df.index,
+                                 columns=eeg_channel_band_power)
 
     if run_autoreject:
         ar = autoreject.AutoReject(random_state=11,

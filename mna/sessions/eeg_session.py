@@ -4,15 +4,22 @@ import autoreject
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
+from mne_features.univariate import compute_pow_freq_bands
 
 
 def process_session_eeg(rns_data, event_df, event_column='spoken_difficulty_encoded', eeg_channel='BioSemi',
                         eeg_montage='biosemi64', save_path='../output/',
                         run_autoreject=True, autoreject_epochs=20, run_ica=True, average_reference=True, low_cut=0.1,
+<<<<<<< HEAD
                         hi_cut=30, plot_epochs=True):
 
     event_detected = event_df[event_column].notnull()
     event_recognized_df = event_df[event_detected]
+=======
+                        hi_cut=30, plot_epochs=True, bands_limits = [8,12]):
+    voice_detected = event_df.spoken_difficulty.notnull()
+    voice_recognized_df = event_df[voice_detected]
+>>>>>>> 9a3587b (modified sessions)
     eeg_channel_names = mne.channels.make_standard_montage(eeg_montage).ch_names
     df = pd.DataFrame(rns_data[eeg_channel][0], columns=rns_data[eeg_channel][1],
                       index=rns_data[eeg_channel][2]['ChannelNames']).T
@@ -31,8 +38,14 @@ def process_session_eeg(rns_data, event_df, event_column='spoken_difficulty_enco
     if low_cut or hi_cut:
         raw.filter(l_freq=low_cut, h_freq=hi_cut)
 
+<<<<<<< HEAD
     trial_start_time = event_recognized_df.trial_start_time - starting_time_s  # reference for mne
     event_values = event_recognized_df[event_column].values
+=======
+    trial_start_time = voice_recognized_df.trial_start_time - starting_time_s  # reference for mne
+    spoken_difficulty = voice_recognized_df.spoken_difficulty.replace(to_replace=['easy', 'hard'],
+                                                                      value=[1, 2])
+>>>>>>> 9a3587b (modified sessions)
 
     events = np.column_stack((trial_start_time.values * freq,
                               np.zeros(len(event_recognized_df), dtype=int),
@@ -40,6 +53,21 @@ def process_session_eeg(rns_data, event_df, event_column='spoken_difficulty_enco
     event_dict = dict(easy=1, hard=2)
     epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=- 0.2, tmax=3, preload=True)
     reject_log = None
+
+    # Band power calculation
+    win_size = 1024
+    band = np.asarray(bands_limits)
+    band_power = np.empty([len(epochs), 64])
+    eeg_channel_names_alpha = [chan_name + "Band Power" for chan_name in eeg_channel_names]
+
+    for i in range(len(epochs)):
+        data_mne = np.squeeze(epochs[i].get_data())
+        pow_freq_band = compute_pow_freq_bands(sfreq=freq, data=data_mne, freq_bands=band, normalize=False,
+                                                    psd_params={'welch_n_fft': win_size, 'welch_n_per_seg': win_size})
+        band_power[i, :] = pow_freq_band
+
+    band_power_df = pd.DataFrame(data=band_power, index=voice_recognized_df.index, columns=eeg_channel_names_alpha)
+
     if run_autoreject:
         ar = autoreject.AutoReject(random_state=11,
                                    n_jobs=1, verbose=False)
@@ -96,5 +124,7 @@ def process_session_eeg(rns_data, event_df, event_column='spoken_difficulty_enco
         ica.plot_components(show=False)
         plt.savefig(f"{save_path}ppid_{ppid}_session_{session}_block_{block}_trial_{trial}_eeg_ica.png")
         plt.close()
+
+    event_df = event_df.join(band_power_df)
 
     return event_df, epochs, events, event_dict, info, reject_log, ica

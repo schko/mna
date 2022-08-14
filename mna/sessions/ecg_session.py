@@ -64,4 +64,5 @@ def process_session_ecg(rns_data, event_df, low_bpm=40, high_bpm=200, save_path=
                                 'removed_beat_rate': np.nan, 'valid_r_peaks': []})
         count += 1
         post_processed_event_df = pd.concat([event_df, pd.json_normalize(ecg_results)], axis=1)
+
     return post_processed_event_df

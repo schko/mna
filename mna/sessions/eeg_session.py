@@ -10,16 +10,10 @@ from mne_features.univariate import compute_pow_freq_bands
 def process_session_eeg(rns_data, event_df, event_column='spoken_difficulty_encoded', eeg_channel='BioSemi',
                         eeg_montage='biosemi64', save_path='../output/',
                         run_autoreject=True, autoreject_epochs=20, run_ica=True, average_reference=True, low_cut=0.1,
-<<<<<<< HEAD
-                        hi_cut=30, plot_epochs=True):
+                        hi_cut=30, plot_epochs=True, bands_limits = [8,12]):
 
     event_detected = event_df[event_column].notnull()
     event_recognized_df = event_df[event_detected]
-=======
-                        hi_cut=30, plot_epochs=True, bands_limits = [8,12]):
-    voice_detected = event_df.spoken_difficulty.notnull()
-    voice_recognized_df = event_df[voice_detected]
->>>>>>> 9a3587b (modified sessions)
     eeg_channel_names = mne.channels.make_standard_montage(eeg_montage).ch_names
     df = pd.DataFrame(rns_data[eeg_channel][0], columns=rns_data[eeg_channel][1],
                       index=rns_data[eeg_channel][2]['ChannelNames']).T
@@ -38,14 +32,8 @@ def process_session_eeg(rns_data, event_df, event_column='spoken_difficulty_enco
     if low_cut or hi_cut:
         raw.filter(l_freq=low_cut, h_freq=hi_cut)
 
-<<<<<<< HEAD
     trial_start_time = event_recognized_df.trial_start_time - starting_time_s  # reference for mne
     event_values = event_recognized_df[event_column].values
-=======
-    trial_start_time = voice_recognized_df.trial_start_time - starting_time_s  # reference for mne
-    spoken_difficulty = voice_recognized_df.spoken_difficulty.replace(to_replace=['easy', 'hard'],
-                                                                      value=[1, 2])
->>>>>>> 9a3587b (modified sessions)
 
     events = np.column_stack((trial_start_time.values * freq,
                               np.zeros(len(event_recognized_df), dtype=int),
@@ -66,7 +54,7 @@ def process_session_eeg(rns_data, event_df, event_column='spoken_difficulty_enco
                                                     psd_params={'welch_n_fft': win_size, 'welch_n_per_seg': win_size})
         band_power[i, :] = pow_freq_band
 
-    band_power_df = pd.DataFrame(data=band_power, index=voice_recognized_df.index, columns=eeg_channel_names_alpha)
+    band_power_df = pd.DataFrame(data=band_power, index=event_recognized_df.index, columns=eeg_channel_names_alpha)
 
     if run_autoreject:
         ar = autoreject.AutoReject(random_state=11,

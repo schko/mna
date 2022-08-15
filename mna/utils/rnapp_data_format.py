@@ -49,14 +49,15 @@ def process_file(input_file, save_pickle=False, data_dir='./../In-Lab Recordings
     return rns_data
 
 # Utility functions to read JSON Data
-def read_all_files(data_dir='./../In-Lab Recordings/'):
+def read_all_files(data_dir='./../In-Lab Recordings/', pickle_dir='./../Pkl_Recordings/', save_pickle=False):
     """
     Processes all RN files in a directory, returns dictionary representations
     """
     onlyfiles = [f for f in listdir(data_dir) if isfile(join(data_dir, f))]
     converted_files = []
     for input_file in onlyfiles:
-        converted_files.append(process_file(input_file, data_dir = data_dir))
+        converted_files.append(process_file(input_file, data_dir = data_dir, pickle_dir=pickle_dir,
+                                            save_pickle=save_pickle))
     return converted_files
 
 def read_all_lslpresets(path_to_jsonfiles = './LSLPresets/'):

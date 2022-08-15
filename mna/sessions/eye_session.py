@@ -1,11 +1,7 @@
 from mna.modalities.eye_process import plot_segments, continuous_to_discrete, process_eye
 import pandas as pd
-<<<<<<< HEAD
 from collections import defaultdict
-=======
 import numpy as np
-
->>>>>>> 9a3587b (modified sessions)
 
 def process_session_eye(rns_data, event_df, eye_channel='Unity_ViveSREyeTracking', detect_blink=True, plot_frequency=20,
                         plot_eye_snippet=40, save_path='../output/', classifiers=None):
@@ -76,19 +72,13 @@ def process_session_eye(rns_data, event_df, eye_channel='Unity_ViveSREyeTracking
             seg_df_summary.columns = [f"{classifier}_count", f"{classifier}_first_onset", f"{classifier}_mean_duration"]
             eye_results[classifier].append(seg_df_summary.to_dict())
         count += 1
-<<<<<<< HEAD
     post_processed_event_df = event_df.copy()
     for classifier in classifiers:
         eye_results_df = pd.json_normalize(eye_results[classifier])
         eye_results_df[f'{classifier}_class_onsets'] = class_onsets[classifier]
         post_processed_event_df = pd.concat([post_processed_event_df, eye_results_df], axis=1)
-=======
-    eye_results = pd.json_normalize(eye_results)
-    eye_results['class_onsets'] = class_onsets
-    post_processed_event_df = pd.concat([event_df, eye_results], axis=1)
 
     # Pupil diameter per trial
-
     L_Pupil_Diameter_trial = []
     R_Pupil_Diameter_trial = []
 
@@ -106,5 +96,4 @@ def process_session_eye(rns_data, event_df, eye_channel='Unity_ViveSREyeTracking
     post_processed_event_df = pd.concat([post_processed_event_df,
                                          L_Pupil_Diameter_trial_avg, R_Pupil_Diameter_trial_avg], axis = 1)
 
->>>>>>> 9a3587b (modified sessions)
     return post_processed_event_df

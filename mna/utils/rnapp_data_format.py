@@ -7,6 +7,7 @@ import pandas as pd
 import os
 import numpy as np
 import warnings
+from multiprocessing import Pool
 
 
 # constant
@@ -48,16 +49,17 @@ def process_file(input_file, save_pickle=False, data_dir='./../In-Lab Recordings
         save_pkl(directory=pickle_dir, file_name=input_file, data=rns_data)  # temporary so we can load it quickly
     return rns_data
 
+def multi_run_wrapper(args):
+   return process_file(*args)
+
 # Utility functions to read JSON Data
 def read_all_files(data_dir='./../In-Lab Recordings/', pickle_dir='./../Pkl_Recordings/', save_pickle=False):
     """
     Processes all RN files in a directory, returns dictionary representations
     """
-    onlyfiles = [f for f in listdir(data_dir) if isfile(join(data_dir, f))]
-    converted_files = []
-    for input_file in onlyfiles:
-        converted_files.append(process_file(input_file, data_dir = data_dir, pickle_dir=pickle_dir,
-                                            save_pickle=save_pickle))
+    onlyfiles = [(f, True, data_dir, pickle_dir) for f in listdir(data_dir) if isfile(join(data_dir, f))]
+    pool_obj = Pool(7)
+    converted_files = pool_obj.map(multi_run_wrapper, onlyfiles)
     return converted_files
 
 def read_all_lslpresets(path_to_jsonfiles = './LSLPresets/'):
@@ -158,7 +160,8 @@ class RNStream:
         read_bytes_count = 0.
         with open(self.fn, "rb") as file:
             while True:
-                if total_bytes:
+                if total_bytes and round(100 * read_bytes_count/total_bytes) % 10 == 0:
+                #if total_bytes:
                     print('Streaming in progress {0}%'.format(str(round(100 * read_bytes_count/total_bytes, 2))), sep=' ', end='\r', flush=True)
                 # read magic
                 read_bytes = file.read(len(magic))

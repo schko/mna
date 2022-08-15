@@ -10,7 +10,7 @@ from mne_features.univariate import compute_pow_freq_bands
 def process_session_eeg(rns_data, event_df, event_column='spoken_difficulty_encoded', eeg_channel='BioSemi',
                         eeg_montage='biosemi64', save_path='../output/',
                         run_autoreject=True, autoreject_epochs=20, run_ica=True, average_reference=True, low_cut=0.1,
-                        hi_cut=30, plot_epochs=True, bands_limits = [8,12]):
+                        hi_cut=30, plot_epochs=True, bands_limits = [4,8,15,32,55]):
     event_detected = event_df[event_column].notnull()
     event_recognized_df = event_df[event_detected]
     eeg_channel_names = mne.channels.make_standard_montage(eeg_montage).ch_names
@@ -43,17 +43,19 @@ def process_session_eeg(rns_data, event_df, event_column='spoken_difficulty_enco
 
     # Band power calculation
     win_size = 1024
-    band = np.asarray(bands_limits)
-    band_power_epochs = np.empty([len(epochs), 64])
-    eeg_channel_band_power = [chan_name + " Freq Band Power" for chan_name in eeg_channel_names]
+    bands = np.asarray(bands_limits)
+    band_interals = list(zip(bands[:-1], bands[1:]))
+    band_power_epochs = np.empty([len(epochs), len(eeg_channel_names)*len(band_interals)])
+    eeg_channel_band_power = [f"{chan_name}_{each_band[0]}-{each_band[1]}_Hz_Band_Power"
+                              for chan_name in eeg_channel_names
+                              for each_band in band_interals]
 
     # Approach with MNE_FEATURES
     for i in range(len(epochs)):
         data_mne = np.squeeze(epochs[i].get_data())
-        pow_freq_band = compute_pow_freq_bands(sfreq=freq, data=data_mne, freq_bands=band, normalize=False,
+        pow_freq_band = compute_pow_freq_bands(sfreq=freq, data=data_mne, freq_bands=bands, normalize=False,
                                                     psd_params={'welch_n_fft': win_size, 'welch_n_per_seg': win_size})
         band_power_epochs[i, :] = pow_freq_band
-
     # Approach with SCIPY.SIGNAL.WELCH
     # for i in range(len(epochs)):
     #     for ii in range(64):

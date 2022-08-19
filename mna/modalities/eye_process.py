@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from cateyes import (plot_segmentation, continuous_to_discrete)
+from cateyes import coords_to_degree as ctod
 
 # Calculate vergence, combined eye gaze data
 
@@ -92,7 +93,7 @@ def clean_and_classify(sub_df, classifiers, detect_blink=True, blink_threshold=.
     indices_nan = list(sub_df.reset_index()[sub_df.isnull().any(axis=1)].index)
     intervals_nan = contiguous_intervals(list(indices_nan))
     blinks_nan = []
-    if detect_blink:
+    if detect_blink and f"{eye_channel} Openness" in sub_df:
         blinks_nan = list(sub_df[sub_df[f"{eye_channel} Openness"] < blink_threshold].index)
         blinks_nan = contiguous_intervals(blinks_nan)
 
@@ -162,10 +163,19 @@ def process_eye(df, timestamp_start=0, timestamp_end=None, detect_blink=True, ey
     return eye_data, intervals_nan
 
 
-def plot_segments(eye_data, ppid, session, block, number_in_block, timestamp_start, timestamp_end, classifiers,
-                  save_path='../output/'):
+def plot_segments(eye_data, ppid='', session=1, block=1, number_in_block=1, timestamp_start=None, timestamp_end=None,
+                  classifiers = None, save_path='../output/'):
+    if classifiers is None:
+        classifiers = ['NSLR', 'REMODNAV']
+    fig = None
     # convert continuous ids and descriptions to discrete timepoints and descriptions
-    subset_eye_data = eye_data[eye_data['timestamp'] <= timestamp_end]
+    if not timestamp_start:
+        timestamp_start = eye_data.timestamp.iat[0]
+    if timestamp_end:
+        subset_eye_data = eye_data[eye_data['timestamp'] <= timestamp_end]
+    else:
+        timestamp_end = eye_data.timestamp.iat[-1]
+        subset_eye_data = eye_data
     for classifier in classifiers:
         (seg_time, seg_class) = continuous_to_discrete(subset_eye_data['timestamp'],
                                                        subset_eye_data[classifier + "_Segment"],
@@ -211,6 +221,7 @@ def plot_segments(eye_data, ppid, session, block, number_in_block, timestamp_sta
         plt.savefig(
             f"{save_path}/ppid_{ppid}_session_{session}_block_{block}_trial_{number_in_block}_classifier_counts_{timestamp_start}s_{timestamp_end}.png")
         plt.close()
+    return fig
 
 # NOTE: classification functions had issues with python 3.10 so moved out, specifically, discrete_to_continuous
 
@@ -243,6 +254,11 @@ REMODNAV_SIMPLE = {"FIXA": "Fixation", "SACC": "Saccade",
                    "HPSO": "PSO", "LPSO": "PSO",
                    "IHPS": "PSO", "ILPS": "PSO"}
 
+def coords_to_degree(x, viewing_dist, screen_max, screen_min=None):
+    """
+    Pass-through
+    """
+    return ctod(x, viewing_dist, screen_max, screen_min=None)
 
 def classify_nslr_hmm(x, y, time, return_discrete=False, return_orig_output=False, **nslr_kwargs):
     """Robust gaze classification using NSLR-HMM by Pekannen & Lappi (2017).

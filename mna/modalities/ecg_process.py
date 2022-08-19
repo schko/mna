@@ -120,7 +120,8 @@ def process_ecg(df, freq, low_bpm=40, high_bpm=200, timestamp_start=0, timestamp
     except IndexError as e:
         failed_to_detect = True
         return working_data, measures, flipped_signal, failed_to_detect
-
+    if not working_data:
+        failed_to_detect = True
     # check if BPM is within range using valid beats
     if not failed_to_detect:
         valid_beats_bpm = ((len(working_data['peaklist']) - len(working_data['removed_beats'])) / (
@@ -136,7 +137,8 @@ def process_ecg(df, freq, low_bpm=40, high_bpm=200, timestamp_start=0, timestamp
             failed_to_detect = False
         except exceptions.BadSignalWarning as e:
             pass
-
+    if not working_data: # we haven't found anything
+        return working_data, measures, flipped_signal, failed_to_detect
     # check if BPM is within range using valid beats
     if not failed_to_detect:
         valid_beats_bpm = ((len(working_data['peaklist']) - len(working_data['removed_beats'])) / (

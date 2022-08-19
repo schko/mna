@@ -106,26 +106,26 @@ def event_data_from_data(rns_data):
     """
     event_df = pd.DataFrame(rns_data['Unity_TrialInfo'][0], columns=rns_data['Unity_TrialInfo'][1],
                   index=rns_data['Unity_TrialInfo'][2]['ChannelNames']).T
+    event_df = event_df.reset_index().rename(columns={'index': 'trial_end_time'})
+    add_trial_start_time(event_df)
     # chunk data is always paired but offset
     if 'Unity_ChunkInfo' in rns_data:
         chunk_df = pd.DataFrame(rns_data['Unity_ChunkInfo'][0], columns=rns_data['Unity_ChunkInfo'][1],
                               index=rns_data['Unity_ChunkInfo'][2]['ChannelNames']).T
         chunk_df['chunk_timestamp'] = chunk_df.index
         event_df = pd.merge_asof(event_df, chunk_df,
-                                 left_index=True,right_index=True,
+                                 left_on="trial_start_time",right_index=True,
                                  direction='nearest', tolerance=1)
     else:
         print(f"Unity_ChunkInfo not found")
     # voice data
     voice_df = pd.DataFrame(rns_data['AIYVoice'][0], columns=rns_data['AIYVoice'][1],
                       index=['spoken_difficulty']).T
-    voice_df['voice_timestamp'] = voice_df.index
-    # we expect voice data then trial end within 15 seconds
-    event_df = pd.merge_asof(event_df, voice_df,
-                                 left_index=True,right_index=True,
-                                 direction='backward', tolerance=15)
-    event_df = event_df.reset_index().rename(columns={'index':'trial_end_time'})
-    add_trial_start_time(event_df)
+    for index, row in voice_df.iterrows(): # keep the last voice data for each trial
+        event_df.loc[((event_df.trial_start_time < index) & (event_df.trial_end_time >= index)),'spoken_difficulty'] =\
+            row['spoken_difficulty']
+        event_df.loc[((event_df.trial_start_time < index) & (event_df.trial_end_time >= index)), 'voice_timestamp'] = \
+            index
     return event_df
 
 def window_slice(data, window_size, stride, channel_mode='channel_last'):

@@ -91,7 +91,8 @@ def clean_and_classify(sub_df, classifiers, detect_blink=True, blink_threshold=.
         return ans
     if eye_channel is None:
         eye_channel = f"{eye_channel} Openness"
-    indices_nan = list(sub_df.reset_index()[sub_df.isnull().any(axis=1)].index)
+    sub_df = sub_df.reset_index()
+    indices_nan = list(sub_df[sub_df.isnull().any(axis=1)].index)
     intervals_nan = contiguous_intervals(list(indices_nan))
     blinks_nan = []
     if detect_blink and eye_channel in sub_df:

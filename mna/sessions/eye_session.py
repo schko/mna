@@ -100,7 +100,7 @@ def process_session_eye(rns_data, event_df, eye_channel='Unity_ViveSREyeTracking
 
 def process_eye_trial_xlsx(xlsx_filename, save_path='../output/', classifiers='NSLR', viewing_dist=65,
                            screen_max_x=1280, screen_max_y=960, plot_eye_result = False, time_units='s',
-                           pupil_channel='pupil'):
+                           pupil_channel='pupil', start_timestamp=None):
     """
     A session in this case is actually a full trial.
     """
@@ -108,7 +108,9 @@ def process_eye_trial_xlsx(xlsx_filename, save_path='../output/', classifiers='N
         classifiers = [classifiers]
     fig = None
     wilming_data = pd.read_excel(xlsx_filename)
-
+    if not start_timestamp:
+        start_timestamp = 0
+    wilming_data = wilming_data.loc[wilming_data.time >= start_timestamp]
     if (wilming_data[pupil_channel] == 0).all(axis=0):  # we have no usable data
         raise Exception("No usable data found.")
 

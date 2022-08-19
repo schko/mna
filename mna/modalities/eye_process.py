@@ -89,12 +89,13 @@ def clean_and_classify(sub_df, classifiers, detect_blink=True, blink_threshold=.
                 ans.append([l, nums[i - 1]])
                 l = nums[i]
         return ans
-
+    if eye_channel is None:
+        eye_channel = f"{eye_channel} Openness"
     indices_nan = list(sub_df.reset_index()[sub_df.isnull().any(axis=1)].index)
     intervals_nan = contiguous_intervals(list(indices_nan))
     blinks_nan = []
-    if detect_blink and f"{eye_channel} Openness" in sub_df:
-        blinks_nan = list(sub_df[sub_df[f"{eye_channel} Openness"] < blink_threshold].index)
+    if detect_blink and eye_channel in sub_df:
+        blinks_nan = list(sub_df[sub_df[eye_channel] <= blink_threshold].index)
         blinks_nan = contiguous_intervals(blinks_nan)
 
     # interpolate NaN rows

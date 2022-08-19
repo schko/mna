@@ -99,7 +99,8 @@ def process_session_eye(rns_data, event_df, eye_channel='Unity_ViveSREyeTracking
     return post_processed_event_df
 
 def process_eye_trial_xlsx(xlsx_filename, save_path='../output/', classifiers='NSLR', viewing_dist=65,
-                           screen_max_x=1280, screen_max_y=960, plot_eye_result = False, time_units='s'):
+                           screen_max_x=1280, screen_max_y=960, plot_eye_result = False, time_units='s',
+                           pupil_channel='pupil'):
     """
     A session in this case is actually a full trial.
     """
@@ -108,7 +109,9 @@ def process_eye_trial_xlsx(xlsx_filename, save_path='../output/', classifiers='N
     fig = None
     wilming_data = pd.read_excel(xlsx_filename)
 
-    wilming_data = wilming_data[['x', 'y', 'time']]
+    if (wilming_data[pupil_channel] == 0).all(axis=0):  # we have no usable data
+        raise Exception("No usable data found.")
+
     if time_units == 'ms':
         wilming_data.time = wilming_data.time/1000
 
@@ -118,7 +121,7 @@ def process_eye_trial_xlsx(xlsx_filename, save_path='../output/', classifiers='N
                                              screen_min=None).T
     wilming_data = wilming_data.rename(columns={'time': 'timestamp'})
     eye_data, intervals_nan = clean_and_classify(wilming_data, classifiers=classifiers, detect_blink=True,
-                                                 blink_threshold=.40, eye_channel='L')
+                                                 blink_threshold=0, eye_channel='pupil')
     eye_results = defaultdict(list)
     class_onsets = defaultdict(list)
     if eye_data.shape[0] == 0 or (

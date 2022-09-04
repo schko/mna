@@ -83,7 +83,7 @@ def process_session_eye(rns_data, event_df, eye_channel='Unity_ViveSREyeTracking
     for index in event_df.index:
         L_Pupil_Diameter_avg = (df['L Pupil Diameter'][(df.index >= event_df['trial_start_time'][index]) &
                                              (df.index <= event_df['trial_end_time'][index]) &
-                                                       (df['L Pupil Diameter'] > -1)]).mean()
+                                                       (df['L Pupil Diameter'] > -1)]).replace(-1, np.nan).mean()
         R_Pupil_Diameter_avg = (df['R Pupil Diameter'][(df.index >= event_df['trial_start_time'][index]) &
                                              (df.index <= event_df['trial_end_time'][index]) &
                                                        (df['R Pupil Diameter'] > -1)]).replace(-1, np.nan).mean()

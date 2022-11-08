@@ -115,10 +115,10 @@ def clean_up_adadrive_trials(all_dfs):
 
     all_dfs_final.columns = all_dfs_final.columns.str.replace('.','_')
     all_dfs_final.columns = all_dfs_final.columns.str.replace('measures_','')
-    all_dfs_final.columns = all_dfs_final.columns.str.replace("Band_Power", "Power")
+    # all_dfs_final.columns = all_dfs_final.columns.str.replace("Band_Power", "Power")
     
-    # rename columns
-    all_dfs_final = all_dfs_final.rename(columns={"Left Pupil Trial Average Diameter": "L Pupil Diameter"})
+    # # rename columns
+    # all_dfs_final = all_dfs_final.rename(columns={"Left Pupil Trial Average Diameter": "L Pupil Diameter"})
 
     # remove trials that are too long
     all_dfs_final = all_dfs_final[all_dfs_final.trial_duration <= 40]

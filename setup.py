@@ -11,7 +11,7 @@ setup(
     name='mna',
     version="1.0",
     description="Multimodal Neurophysiological Analysis",
-    author="Sharath Koorathota",
+    author="Sharath Koorathota & Jia Li Ma",
     packages=find_packages(include=['mna', 'mna.*']),
     install_requires=install_requires,
     extras_require={

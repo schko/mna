@@ -4,13 +4,18 @@ import autoreject
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
-from mne_features.univariate import compute_pow_freq_bands
+from mne_features.univariate import compute_hjorth_mobility,compute_pow_freq_bands
+from mne.preprocessing import corrmap
+from eeglib.features import (bandPower, hjorthActivity, hjorthMobility,
+                             hjorthComplexity, sampEn, LZC, DFA, _HFD, HFD, PFD,
+                             synchronizationLikelihood)
 
 
 def process_session_eeg(rns_data, event_df, event_column='spoken_difficulty_encoded', eeg_channel='BioSemi',
-                        eeg_montage='biosemi64', save_path='../output/',
-                        run_autoreject=True, autoreject_epochs=20, run_ica=True, average_reference=True, low_cut=0.1,
-                        hi_cut=55, plot_epochs=True, bands_limits=None):
+                        eeg_montage='biosemi64', save_path='../output/', sbj_session = None, save_raw_eeg = False,
+                        run_autoreject=True, autoreject_epochs=20, run_ica=True, template_ica = None, average_reference=True,
+                        downsampling = True, n_decim = 16, low_cut=1, hi_cut=55, plot_epochs=False, bands_limits=None, 
+                        analyze_pre_ica = False):
 
     if bands_limits is None:
         bands_limits = [4, 8, 15, 32, 55]
@@ -34,6 +39,9 @@ def process_session_eeg(rns_data, event_df, event_column='spoken_difficulty_enco
         raw = raw.set_eeg_reference(ref_channels='average')  # set average reference
     if low_cut or hi_cut:
         raw.filter(l_freq=low_cut, h_freq=hi_cut)
+    if downsampling:
+        raw.resample(freq/n_decim)
+        freq /= n_decim
 
     trial_start_time = event_recognized_df.trial_start_time - starting_time_s  # reference for mne
     event_values = event_recognized_df[event_column].values
@@ -41,61 +49,119 @@ def process_session_eeg(rns_data, event_df, event_column='spoken_difficulty_enco
                               np.zeros(len(event_recognized_df), dtype=int),
                               event_values)).astype(int)
     event_dict = dict(easy=1, hard=2)
-    epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=- 0.2, tmax=3, preload=True, on_missing='warn')
-    event_recognized_df = event_recognized_df[[e==() for e in epochs.drop_log]] # only keep good epochs in event_df
-    reject_log = None
-    # Band power calculation
-    win_size = 1024
-    bands = np.asarray(bands_limits)
-    band_intervals = list(zip(bands[:-1], bands[1:]))
-    band_power_epochs = np.empty([len(epochs), len(eeg_channel_names)*len(band_intervals)])
-    eeg_channel_band_power = [f"{chan_name}_{each_band[0]}-{each_band[1]}_Hz_Band_Power"
-                              for chan_name in eeg_channel_names
-                              for each_band in band_intervals]
-
-    # Approach with MNE_FEATURES
-    for i in range(len(epochs)):
-        data_mne = np.squeeze(epochs[i].get_data())
-        pow_freq_band = compute_pow_freq_bands(sfreq=freq, data=data_mne, freq_bands=bands, normalize=False,
-                                                    psd_params={'welch_n_fft': win_size, 'welch_n_per_seg': win_size})
-        band_power_epochs[i, :] = pow_freq_band
-    # Approach with SCIPY.SIGNAL.WELCH
-    # for i in range(len(epochs)):
-    #     for ii in range(64):
-    #         data_signal = np.squeeze(epochs[i].get_data())
-    #         freqs, psd = signal.welch(data_signal[ii], freq, nfft=win_size, nperseg=win_size, window='hamming')
-    #
-    #         freq_res = freqs[1] - freqs[0]
-    #
-    #         band_power = simps(psd[(freqs >= band[0]) & (freqs <= band[1])], dx=freq_res)
-    #         # band_power = trapezoid(psd[(freqs >= band[0]) & (freqs <= band[1])], dx=freq_res)
-    #
-    #         band_power_epochs[i, ii] = band_power
-
-    band_power_df = pd.DataFrame(data=band_power_epochs, index=event_recognized_df.index,
-                                 columns=eeg_channel_band_power)
-    if len(epochs) < 10: # we need at least 10 epochs to run autoreject for cross validation
-        bad_epochs = pd.Series(np.full(len(event_df),np.NAN), index=event_df.index, name='autorejected')
-        event_df = event_df.join(bad_epochs)
-        reject_log = None
-    elif run_autoreject:
-        ar = autoreject.AutoReject(random_state=11,
-                                   n_jobs=1, verbose=False)
-        ar.fit(epochs[:autoreject_epochs])  # fit on a few epochs to save time
-        epochs_ar, reject_log = ar.transform(epochs, return_log=True)
-        bad_epochs = pd.Series(reject_log.bad_epochs, index=event_recognized_df.index, dtype=bool, name='autorejected')
-        event_df = event_df.join(bad_epochs) # creates nan if not processed at all
-        epochs = epochs_ar
+    
+    # save raw data
+    if save_raw_eeg:
+        
+        raw_eeg_dir = '../output/saved_files/raw_eeg/'
+        if not os.path.isdir(raw_eeg_dir): os.makedirs(raw_eeg_dir)
+        raw.save(os.path.join(raw_eeg_dir, sbj_session+'_eeg_filt_raw.fif'), overwrite=True)
 
     if run_ica:
-        # ICA parameters
-        random_state = 42  # ensures ICA is reproducable each time it's run
-        ica_n_components = 20  # Specify n_components as a decimal to set % explained variance
+        
+        # create duplicate raw, event_df, event_recognized_df for pre and post ica comparison
+        if analyze_pre_ica:
+            raw_pre_ica = raw.copy()
+            event_df_pre_ica = event_df
+            event_recognized_df_pre_ica = event_recognized_df
 
         # Fit ICA
-        ica = mne.preprocessing.ICA(n_components=ica_n_components, random_state=random_state, method='fastica',
-                                    max_iter="auto").fit(epochs)
-        ica.fit(epochs)
+        ica = mne.preprocessing.ICA(n_components=64, random_state=64) # n_components as a decimal set % explained variance
+        ica.fit(raw)
+        
+        # ica.plot_components(picks = range(0,10))
+        
+        # # Automatic Artifact Detection
+        # eog_idx, eog_scores = ica.find_bads_eog(raw, ch_name = ['Fp1', 'Fp2'])
+        
+        # Semi automatic artifact detection - Corrmap
+        if (sbj_session == 'sbj20ssn03') or (template_ica == None):
+            eog_idx = [4, 5]
+        else:
+            icas = [template_ica]+[ica]
+            corrmap(icas, template= (0,5), label = "blink", show=False)
+            corrmap(icas, template= (0,4), label = "horizontal_eye_movement", show=False)
+            identified_ica_label = [ica.labels_ for ica in icas]
+            eog_idx = identified_ica_label[1]['blink']+identified_ica_label[1]['horizontal_eye_movement']
+        
+        # Reconstruct filtered raw signal without Eye Components
+        ica.apply(raw, exclude=eog_idx)
+
+    else:
+        ica = None
+        eog_idx = None
+    
+    def process_session_eeg_inner(raw, event_recognized_df, event_df):
+    
+        # epochs = mne.Epochs(raw, events, event_id=event_dict, tmin= -3.2, tmax=0, baseline =(-3.2, -3.0), preload=True, 
+        #                     on_missing='warn')
+        epochs = mne.Epochs(raw, events, event_id=event_dict, tmin= -.2, tmax=3, baseline =(None, 0), preload=True, 
+                            on_missing='warn')
+        event_recognized_df = event_recognized_df[[e==() for e in epochs.drop_log]] # only keep good epochs in event_df
+        reject_log = None
+        
+        # EEG Feature Extraction - 24 features
+        extracted_24_features_df = eeg_features(epochs, event_recognized_df, bands_limits, eeg_channel_names, freq)
+        
+#         win_size = 1024
+#         bands = np.asarray(bands_limits)
+#         band_intervals = list(zip(bands[:-1], bands[1:]))
+#         band_power_epochs = np.empty([len(epochs), len(eeg_channel_names)*len(band_intervals)])
+#         eeg_channel_band_power = [f"{chan_name}_{each_band[0]}-{each_band[1]}_Hz_Power"
+#                                   for chan_name in eeg_channel_names
+#                                   for each_band in band_intervals]
+#         hjorth_mobility = np.empty([len(epochs), len(eeg_channel_names)])
+#         eeg_channel_hjorth_mobility = [f"{chan_name}_Hjorth_Mobility" for chan_name in eeg_channel_names]
+
+
+#         for i in range(len(epochs)):
+#             data_mne = np.squeeze(epochs[i].get_data())
+
+#             # EEG bands
+#             pow_freq_band = compute_pow_freq_bands(sfreq=freq, data=data_mne, freq_bands=bands, normalize=False,
+#                                                         psd_params={'welch_n_fft': win_size, 'welch_n_per_seg': win_size})
+#             band_power_epochs[i, :] = pow_freq_band
+
+#             # Hjorth Mobility
+#             hjorth_mobility[i,:] = compute_hjorth_mobility(data_mne)
+
+
+#         # Band power feature extraction with SCIPY.SIGNAL.WELCH (Reference: https://raphaelvallat.com/bandpower.html)
+#         # for i in range(len(epochs)):
+#         #     for ii in range(64):
+#         #         data_signal = np.squeeze(epochs[i].get_data())
+#         #         freqs, psd = signal.welch(data_signal[ii], freq, nfft=win_size, nperseg=win_size, window='hamming')
+#         #
+#         #         freq_res = freqs[1] - freqs[0]
+#         #
+#         #         band_power = simps(psd[(freqs >= band[0]) & (freqs <= band[1])], dx=freq_res)
+#         #         # band_power = trapezoid(psd[(freqs >= band[0]) & (freqs <= band[1])], dx=freq_res)
+#         #
+#         #         band_power_epochs[i, ii] = band_power
+
+#         band_power_df = pd.DataFrame(data=band_power_epochs, index=event_recognized_df.index,
+#                                      columns=eeg_channel_band_power)
+#         hjorth_mobility_df = pd.DataFrame(data=hjorth_mobility, index=event_recognized_df.index,
+#                                      columns=eeg_channel_hjorth_mobility)
+
+        if len(epochs) < 10: # we need at least 10 epochs to run autoreject for cross validation
+            bad_epochs = pd.Series(np.full(len(event_df),np.NAN), index=event_df.index, name='autorejected')
+            event_df = event_df.join(bad_epochs)
+            reject_log = None
+        elif run_autoreject:
+            ar = autoreject.AutoReject(random_state=11,
+                                       n_jobs=1, verbose=False)
+            ar.fit(epochs[:autoreject_epochs])  # fit on a few epochs to save time
+            epochs_ar, reject_log = ar.transform(epochs, return_log=True)
+            bad_epochs = pd.Series(reject_log.bad_epochs, index=event_recognized_df.index, dtype=bool, name='autorejected')
+            event_df = event_df.join(bad_epochs)
+            epochs = epochs_ar
+            
+        return epochs, event_recognized_df, reject_log, event_df, extracted_24_features_df
+    
+    epochs, event_recognized_df, reject_log, event_df, extracted_24_features_df = process_session_eeg_inner(raw,
+                                                                                    event_recognized_df, event_df)
+        
     try:
         if plot_epochs:
             if not os.path.isdir(save_path): os.makedirs(save_path)
@@ -130,7 +196,7 @@ def process_session_eeg(rns_data, event_df, event_column='spoken_difficulty_enco
             plt.close()
             if reject_log:
                 result_fig = reject_log.plot('horizontal')
-                result_fig.savefig(
+                result_fig.savefig( 
                     f"{save_path}ppid_{ppid}_session_{session}_block_{block}_trial_{trial}_eeg_autoreject_preica.png")
                 plt.close()
             ica.plot_components(show=False)
@@ -139,6 +205,87 @@ def process_session_eeg(rns_data, event_df, event_column='spoken_difficulty_enco
     except Exception as e:
         print('some plotting error', e)
         pass
-    event_df = event_df.join(band_power_df)
+    
+    event_df = event_df.join(extracted_24_features_df)
+    
+    if run_ica and analyze_pre_ica:
+        _, _, _, event_df_pre_ica, extracted_24_features_df_pre_ica = process_session_eeg_inner(raw_pre_ica, 
+                                                                        event_recognized_df_pre_ica, event_df_pre_ica)
+        
+        event_df_pre_ica.columns = event_df_pre_ica.columns.str.replace("autorejected", "autorejected_raw")
+        extracted_24_features_df_pre_ica = extracted_24_features_df_pre_ica.add_suffix("_raw")
 
-    return event_df, epochs, events, event_dict, info, reject_log, ica
+        event_df = event_df.join(event_df_pre_ica['autorejected_raw'])
+        event_df = event_df.join(extracted_24_features_df_pre_ica)
+
+    return event_df, epochs, events, info, reject_log, ica, eog_idx
+
+def eeg_features(epochs, event_recognized_df, bands_limits, eeg_channel_names, fs, win_size = 1024):
+    
+    # identify available frequency bands
+    bands = np.asarray(bands_limits)
+    band_intervals = list(zip(bands[:-1], bands[1:]))
+    
+    #initiate empty matrix for all features
+    band_power_all = np.empty([len(epochs), len(eeg_channel_names)*len(band_intervals)])
+    hjorth_activity = np.empty([len(epochs), len(eeg_channel_names)])
+    hjorth_mobility = np.empty([len(epochs), len(eeg_channel_names)])
+    hjorth_complexity = np.empty([len(epochs), len(eeg_channel_names)])
+    higuchi_fd = np.empty([len(epochs), len(eeg_channel_names)])
+    sample_entropy = np.empty([len(epochs), len(eeg_channel_names)])
+    
+    # create column list for dataframe (band power column arrangement will be different than others due to its function)
+    channel_band_power = [f"{chan_name}_{each_band[0]}-{each_band[1]}_Hz_Power"
+                              for chan_name in eeg_channel_names
+                                  for each_band in band_intervals]
+    band_specific_features_list = ['Hjorth_Activity', 'Hjorth_Mobility', 'Hjorth_Complexity', 
+                                   'Higuchi_FD', 'Sample_entropy']
+    band_specific_features = [f"{chan_name}_{each_band[0]}-{each_band[1]}_Hz_{each_feature}"
+                          for each_feature in band_specific_features_list
+                              for each_band in band_intervals
+                                  for chan_name in eeg_channel_names]
+    # combine column name for all features
+    all_features = channel_band_power + band_specific_features
+
+    # band power calculation
+    for i in range(len(epochs)):
+        eeg_data = np.squeeze(epochs[i].get_data())
+        band_power = compute_pow_freq_bands(sfreq=fs, data=eeg_data, freq_bands=bands, normalize=False,
+                                            psd_params={'welch_n_fft': win_size, 'welch_n_per_seg': win_size})
+        band_power_all[i, :] = band_power
+    
+    # Other features calculation
+    for index, freq_band in enumerate(band_intervals):
+        band_specific_epoch = np.squeeze(epochs.filter(freq_band[0],freq_band[1], verbose = False).get_data())
+        for i in range(len(epochs.events)):
+            for ii in range(64):
+                # band-specific Hjorth activity, mobility and complexity
+                hjorth_activity[i,ii] = hjorthActivity(band_specific_epoch[i][ii])
+                hjorth_mobility[i,ii] = hjorthMobility(band_specific_epoch[i][ii])
+                hjorth_complexity[i,ii] = hjorthComplexity(band_specific_epoch[i][ii])
+
+                # band-specific HFD
+                higuchi_fd[i,ii] = HFD(band_specific_epoch[i][ii])
+
+                # band-specific sample entropy
+                sample_entropy[i,ii] = sampEn(band_specific_epoch[i][ii])
+    # concatenate each band specific features into a single matrix 
+        if index == 0:
+            hjorth_activity_all = hjorth_activity
+            hjorth_mobility_all = hjorth_mobility
+            hjorth_complexity_all = hjorth_complexity
+            higuchi_fd_all = higuchi_fd
+            sample_entropy_all = sample_entropy
+        else:
+            hjorth_activity_all = np.hstack((hjorth_activity_all, hjorth_activity))
+            hjorth_mobility_all = np.hstack((hjorth_mobility_all, hjorth_mobility))
+            hjorth_complexity_all = np.hstack((hjorth_complexity_all, hjorth_complexity))
+            higuchi_fd_all = np.hstack((higuchi_fd_all, higuchi_fd))
+            sample_entropy_all = np.hstack((sample_entropy_all, sample_entropy))
+    
+    # concatenate all features into a single matrix and convert to dataframe
+    all_eeg_features = np.hstack((band_power_all, hjorth_activity_all, hjorth_mobility_all,
+                                  hjorth_complexity_all, higuchi_fd_all, sample_entropy_all)) 
+    all_eeg_features_df = pd.DataFrame(all_eeg_features, index=event_recognized_df.index, columns=all_features)
+
+    return all_eeg_features_df

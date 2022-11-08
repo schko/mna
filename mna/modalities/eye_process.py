@@ -150,10 +150,8 @@ def process_eye(df, timestamp_start=0, timestamp_end=None, detect_blink=True, ey
         try:
             eye_data = combine_gaze(eye_data)
         except ValueError as e:
-            eye_data = eye_data.reset_index().rename(columns={'index': 'timestamp'})
             return eye_data, [[eye_data.timestamp.iloc[0], eye_data.timestamp.iloc[-1]]]
     elif (eye_data[f"{eye_channel} Pupil Diameter"] == -1.0).all(axis=0):  # we have no usable data
-        eye_data = eye_data.reset_index().rename(columns={'index': 'timestamp'})
         if eye_data.shape[0] == 0:
             return eye_data, [[]]
         return eye_data, [[eye_data.timestamp.iloc[0], eye_data.timestamp.iloc[-1]]]

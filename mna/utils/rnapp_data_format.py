@@ -7,7 +7,7 @@ import pandas as pd
 import os
 import numpy as np
 import warnings
-from multiprocessing import Pool
+from multiprocessing import Pool 
 
 
 # constant
@@ -43,10 +43,10 @@ def process_file(input_file, save_pickle=False, data_dir='./../In-Lab Recordings
     def save_pkl(directory, file_name, data):
         with open(directory + file_name + '.pkl', 'wb') as handle:
             pickle.dump(rns_data, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-    rns_data = get_RNStream(input_file, jitter_removal=False)
-    if save_pickle:
-        save_pkl(directory=pickle_dir, file_name=input_file, data=rns_data)  # temporary so we can load it quickly
+    if not os.path.isfile(pickle_dir + input_file + '.pkl'):
+        rns_data = get_RNStream(input_file, jitter_removal=False)
+        if save_pickle:
+            save_pkl(directory=pickle_dir, file_name=input_file, data=rns_data)  # temporary so we can load it quickly
     return rns_data
 
 def multi_run_wrapper(args):
@@ -58,7 +58,7 @@ def read_all_files(data_dir='./../In-Lab Recordings/', pickle_dir='./../Pkl_Reco
     Processes all RN files in a directory, returns dictionary representations
     """
     onlyfiles = [(f, True, data_dir, pickle_dir) for f in listdir(data_dir) if isfile(join(data_dir, f))]
-    pool_obj = Pool(7)
+    pool_obj = Pool(12)
     converted_files = pool_obj.map(multi_run_wrapper, onlyfiles)
     return converted_files
 
@@ -100,24 +100,41 @@ def add_trial_start_time(event_df, offset=0.01):
     trial_end_times[1:] = event_df.trial_end_time[0:-1]+offset # add a 0.01 second offset since the next trial starts immediately
     event_df.insert(0, "trial_start_time", trial_end_times)
 
-def event_data_from_data(rns_data):
+def event_data_from_data(rns_data, interrupted_id_sessions=[]):
     """
     Takes raw data from LSL streams and merges TrialInfo, ChunkInfo and AIYVoice info into an event dataframe
     """
     event_df = pd.DataFrame(rns_data['Unity_TrialInfo'][0], columns=rns_data['Unity_TrialInfo'][1],
                   index=rns_data['Unity_TrialInfo'][2]['ChannelNames']).T
     event_df = event_df.reset_index().rename(columns={'index': 'trial_end_time'})
-    add_trial_start_time(event_df)
+    interrupted_ids = [p[0] for p in interrupted_id_sessions]
+    interrupted_sessions = [p[1] for p in interrupted_id_sessions]
+    
     # chunk data is always paired but offset
     if 'Unity_ChunkInfo' in rns_data:
         chunk_df = pd.DataFrame(rns_data['Unity_ChunkInfo'][0], columns=rns_data['Unity_ChunkInfo'][1],
                               index=rns_data['Unity_ChunkInfo'][2]['ChannelNames']).T
-        chunk_df['chunk_timestamp'] = chunk_df.index
-        event_df = pd.merge_asof(event_df, chunk_df,
-                                 left_on="trial_start_time",right_index=True,
-                                 direction='nearest', tolerance=1)
+        chunk_df = chunk_df.reset_index().rename(columns={'index': 'chunk_timestamp'})
+        event_df = pd.concat([event_df,chunk_df],axis=1)
+        #chunk_df['chunk_timestamp'] = chunk_df.index
+        #event_df = pd.merge_asof(event_df, chunk_df,
+        #                         left_on="trial_start_time",right_index=True,
+        #                         direction='nearest', tolerance=1)
     else:
         print(f"Unity_ChunkInfo not found")
+        
+    if event_df.iloc[0].ppid in interrupted_ids and event_df.iloc[0].session in interrupted_sessions:
+        print('FIXING THE EVENT DF SINCE PID', event_df.iloc[0].ppid, 'SESSION', event_df.iloc[0].session, 'WAS INTERRUPTED')
+        event_df = event_df.loc[~event_df.duplicated(subset=['ppid','session','block','number_in_block','trial'], keep='first'),:].reset_index(drop=True)
+        last_freak_idx = event_df.loc[event_df.ppid == 0].index[-1]
+        event_df = event_df[event_df.ppid != 0].reset_index(drop=True)
+        event_df.loc[last_freak_idx:,'session'] = event_df.loc[last_freak_idx-1,'session']
+        event_df.loc[last_freak_idx:,'block'] = event_df.loc[last_freak_idx:,'block'] + event_df.loc[last_freak_idx-1,'block']
+        event_df.loc[last_freak_idx:,'trial'] = event_df.loc[last_freak_idx:,'trial'] + event_df.loc[last_freak_idx-1,'trial']
+        event_df.loc[last_freak_idx:,'damage'] = event_df.loc[last_freak_idx:,'damage'] + event_df.loc[last_freak_idx-1,'damage']
+        
+    add_trial_start_time(event_df)
+    
     # voice data
     voice_df = pd.DataFrame(rns_data['AIYVoice'][0], columns=rns_data['AIYVoice'][1],
                       index=['spoken_difficulty']).T
@@ -160,7 +177,7 @@ class RNStream:
         read_bytes_count = 0.
         with open(self.fn, "rb") as file:
             while True:
-                if total_bytes and round(100 * read_bytes_count/total_bytes) % 10 == 0:
+                if total_bytes and (100 * read_bytes_count/total_bytes) % 30 == 0:
                 #if total_bytes:
                     print('Streaming in progress {0}%'.format(str(round(100 * read_bytes_count/total_bytes, 2))), sep=' ', end='\r', flush=True)
                 # read magic

@@ -15,12 +15,16 @@ def process_session_eeg(rns_data, event_df, event_column='spoken_difficulty_enco
                         eeg_montage='biosemi64', save_path='../output/', sbj_session = None, save_raw_eeg = False,
                         run_autoreject=True, autoreject_epochs=20, run_ica=True, template_ica = None, average_reference=True,
                         downsampling = True, n_decim = 16, low_cut=1, hi_cut=55, plot_epochs=False, bands_limits=None, 
-                        analyze_pre_ica = False):
+                        analyze_pre_ica = False, eye_movement_removal=True, tmin=-.2, tmax=3, baseline=(None, 0),
+                        normalize_pow_freq=True, filter_events=True):
 
     if bands_limits is None:
         bands_limits = [4, 8, 15, 32, 55]
-    event_detected = event_df[event_column].notnull()
-    event_recognized_df = event_df[event_detected]
+    if filter_events:
+        event_detected = event_df[event_column].notnull()
+        event_recognized_df = event_df[event_detected]
+    else:
+        event_recognized_df = event_df
 
     eeg_channel_names = mne.channels.make_standard_montage(eeg_montage).ch_names
     df = pd.DataFrame(rns_data[eeg_channel][0], columns=rns_data[eeg_channel][1],
@@ -48,7 +52,7 @@ def process_session_eeg(rns_data, event_df, event_column='spoken_difficulty_enco
     events = np.column_stack((trial_start_time.values * freq,
                               np.zeros(len(event_recognized_df), dtype=int),
                               event_values)).astype(int)
-    event_dict = dict(easy=1, hard=2)
+    event_dict = dict(easy=1, hard=2, unknown=0)
     
     # save raw data
     if save_raw_eeg:
@@ -76,13 +80,22 @@ def process_session_eeg(rns_data, event_df, event_column='spoken_difficulty_enco
         
         # Semi automatic artifact detection - Corrmap
         if (sbj_session == 'sbj20ssn03') or (template_ica == None):
-            eog_idx = [4, 5]
+            if eye_movement_removal:
+                eog_idx = [4, 5]
+            else:
+                eog_idx = [5]
         else:
             icas = [template_ica]+[ica]
             corrmap(icas, template= (0,5), label = "blink", show=False)
-            corrmap(icas, template= (0,4), label = "horizontal_eye_movement", show=False)
+            
+            if eye_movement_removal:
+                corrmap(icas, template= (0,4), label = "horizontal_eye_movement", show=False)
             identified_ica_label = [ica.labels_ for ica in icas]
-            eog_idx = identified_ica_label[1]['blink']+identified_ica_label[1]['horizontal_eye_movement']
+            
+            if eye_movement_removal:
+                eog_idx = identified_ica_label[1]['blink']+identified_ica_label[1]['horizontal_eye_movement']
+            else:
+                eog_idx = identified_ica_label[1]['blink']
         
         # Reconstruct filtered raw signal without Eye Components
         ica.apply(raw, exclude=eog_idx)
@@ -95,13 +108,14 @@ def process_session_eeg(rns_data, event_df, event_column='spoken_difficulty_enco
     
         # epochs = mne.Epochs(raw, events, event_id=event_dict, tmin= -3.2, tmax=0, baseline =(-3.2, -3.0), preload=True, 
         #                     on_missing='warn')
-        epochs = mne.Epochs(raw, events, event_id=event_dict, tmin= -.2, tmax=3, baseline =(None, 0), preload=True, 
-                            on_missing='warn')
+        epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=tmin, tmax=tmax, baseline=baseline, preload=True, 
+                                on_missing='warn')
+            
         event_recognized_df = event_recognized_df[[e==() for e in epochs.drop_log]] # only keep good epochs in event_df
         reject_log = None
         
         # EEG Feature Extraction - 24 features
-        extracted_24_features_df = eeg_features(epochs, event_recognized_df, bands_limits, eeg_channel_names, freq)
+        extracted_24_features_df = eeg_features(epochs, event_recognized_df, bands_limits, eeg_channel_names, freq, normalize_pow_freq=normalize_pow_freq)
         
 #         win_size = 1024
 #         bands = np.asarray(bands_limits)
@@ -220,7 +234,7 @@ def process_session_eeg(rns_data, event_df, event_column='spoken_difficulty_enco
 
     return event_df, epochs, events, info, reject_log, ica, eog_idx
 
-def eeg_features(epochs, event_recognized_df, bands_limits, eeg_channel_names, fs, win_size = 1024):
+def eeg_features(epochs, event_recognized_df, bands_limits, eeg_channel_names, fs, win_size = 1024, normalize_pow_freq=True):
     
     # identify available frequency bands
     bands = np.asarray(bands_limits)
@@ -249,14 +263,14 @@ def eeg_features(epochs, event_recognized_df, bands_limits, eeg_channel_names, f
 
     # band power calculation
     for i in range(len(epochs)):
-        eeg_data = np.squeeze(epochs[i].get_data())
-        band_power = compute_pow_freq_bands(sfreq=fs, data=eeg_data, freq_bands=bands, normalize=False,
+        eeg_data = np.squeeze(epochs.get_data(item=i))
+        band_power = compute_pow_freq_bands(sfreq=fs, data=eeg_data, freq_bands=bands, normalize=normalize_pow_freq,
                                             psd_params={'welch_n_fft': win_size, 'welch_n_per_seg': win_size})
         band_power_all[i, :] = band_power
     
     # Other features calculation
     for index, freq_band in enumerate(band_intervals):
-        band_specific_epoch = np.squeeze(epochs.filter(freq_band[0],freq_band[1], verbose = False).get_data())
+        band_specific_epoch = np.squeeze(epochs.copy().filter(freq_band[0],freq_band[1], verbose = False).get_data())
         for i in range(len(epochs.events)):
             for ii in range(64):
                 # band-specific Hjorth activity, mobility and complexity

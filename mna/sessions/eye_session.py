@@ -6,7 +6,7 @@ import scipy
 
 def process_session_eye(rns_data, event_df, eye_channel='Unity_ViveSREyeTracking', detect_blink=True, 
                         pretrial_period=0, posttrial_period=0, plot_frequency=20,
-                        plot_eye_snippet=40, save_path='../output/', classifiers=None, plot_eye_result=False):
+                        plot_eye_snippet=40, save_path='../output/', classifiers=None, plot_eye_result=False, pupil_average_limit=3):
     """
     event_df: dataframe with timestamps start and end to iterate over
     pretrial_period: how much time before the trial_start to use for classification (secs), shorter time = less accurate 
@@ -21,8 +21,8 @@ def process_session_eye(rns_data, event_df, eye_channel='Unity_ViveSREyeTracking
     df = pd.DataFrame(rns_data[eye_channel][0], columns=rns_data[eye_channel][1],
                       index=rns_data[eye_channel][2]['ChannelNames']).T
     df = df.reset_index().rename(columns={'index': 'timestamp'})
-    eye_start_time = df.timestamp[0]
-    eye_end_time = df.timestamp[-1]
+    eye_start_time = df.timestamp.iloc[0]
+    eye_end_time = df.timestamp.iloc[-1]
     
     count = 0
     eye_results = defaultdict(list)
@@ -113,23 +113,33 @@ def process_session_eye(rns_data, event_df, eye_channel='Unity_ViveSREyeTracking
         eye_results_df[f'{classifier}_class_onsets'] = class_onsets[classifier]
         post_processed_event_df = pd.concat([post_processed_event_df, eye_results_df], axis=1)
 
-    # Pupil diameter per trial
+    # Average Pupil diameter per trial (trial onset 3 second)
+    # initialize list for pupil diameter (not empty matrix because inconsistent samples across trials & subject)
     L_Pupil_Diameter_trial = []
     R_Pupil_Diameter_trial = []
 
     for index in event_df.index:
-        L_Pupil_Diameter_avg = (df['L Pupil Diameter'][(df.timestamp >= event_df['trial_start_time'][index]) &
-                                             (df.timestamp <= event_df['trial_end_time'][index]) &
-                                                       (df['L Pupil Diameter'] > -1)]).replace(-1, np.nan).mean()
-        R_Pupil_Diameter_avg = (df['R Pupil Diameter'][(df.timestamp >= event_df['trial_start_time'][index]) &
-                                             (df.timestamp <= event_df['trial_end_time'][index]) &
-                                                       (df['R Pupil Diameter'] > -1)]).replace(-1, np.nan).mean()
+        if pupil_average_limit:
+            L_Pupil_Diameter_avg = (df['L Pupil Diameter'][(df.timestamp >= event_df['trial_start_time'][index]) &
+                                                           (df.timestamp <= event_df['trial_start_time'][index]+pupil_average_limit) &
+                                                           (df['L Pupil Diameter'] != -1)]).mean()
+            R_Pupil_Diameter_avg = (df['R Pupil Diameter'][(df.timestamp >= event_df['trial_start_time'][index]) &
+                                                           (df.timestamp <= event_df['trial_start_time'][index]+pupil_average_limit) &
+                                                           (df['R Pupil Diameter'] != -1)]).mean()
+        else:
+            L_Pupil_Diameter_avg = (df['L Pupil Diameter'][(df.timestamp >= event_df['trial_start_time'][index]) &
+                                                           (df.timestamp <= event_df['trial_end_time'][index]) &
+                                                           (df['L Pupil Diameter'] != -1)]).mean()
+            R_Pupil_Diameter_avg = (df['R Pupil Diameter'][(df.timestamp >= event_df['trial_start_time'][index]) &
+                                                           (df.timestamp <= event_df['trial_end_time'][index]) &
+                                                           (df['R Pupil Diameter'] != -1)]).mean()
         L_Pupil_Diameter_trial.append(L_Pupil_Diameter_avg)
         R_Pupil_Diameter_trial.append(R_Pupil_Diameter_avg)
 
     L_Pupil_Diameter_trial_avg = pd.DataFrame(L_Pupil_Diameter_trial, columns=["Left Pupil Diameter"])
     R_Pupil_Diameter_trial_avg = pd.DataFrame(R_Pupil_Diameter_trial, columns=["Right Pupil Diameter"])
     
+    # Evoked Pupil Response (trial onset 3 second)
     L_Pupil_3sec_evoked = pd.DataFrame(pupil_diameter_evoked(df, event_df, fs, 'L Pupil Diameter'), 
                                  columns=["Left Evoked Pupil Diameter"])
     R_Pupil__3sec_evoked = pd.DataFrame(pupil_diameter_evoked(df, event_df, fs, 'R Pupil Diameter'), 

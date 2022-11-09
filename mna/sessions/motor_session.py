@@ -90,7 +90,7 @@ def peakdetect(y_axis, x_axis = None, lookahead = 200, delta=0):
             #Maxima peak candidate found
             #look ahead in signal to ensure that this is a peak and not jitter
             if y_axis[index:index+lookahead].max() < mx:
-                max_peaks.append([mxpos, mx])
+                max_peaks.append([mxpos, mx, y_axis[index:index+lookahead]])
                 dump.append(True)
                 #set algorithm to only find minima now
                 mx = np.Inf
@@ -108,7 +108,7 @@ def peakdetect(y_axis, x_axis = None, lookahead = 200, delta=0):
             #Minima peak candidate found 
             #look ahead in signal to ensure that this is a peak and not jitter
             if y_axis[index:index+lookahead].min() > mn:
-                min_peaks.append([mnpos, mn])
+                min_peaks.append([mnpos, mn, y_axis[index:index+lookahead]])
                 dump.append(False)
                 #set algorithm to only find maxima now
                 mn = -np.Inf
@@ -162,7 +162,7 @@ def process_session_motor(rns_data, event_df, motor_channel='Unity_MotorInput', 
                 plot_motor_data = df[(df.index >= timestamp_start) & (df.index <= plot_timestamp_end)]
     
                 # wheel is 40Hz, so turn_lookahead/freq 750 ms of lookahead and 18 degrees of rotation (10%) empirically does okay
-                _max, _min = peakdetect(plot_motor_data.steer_input, plot_motor_data.index, lookahead=int(turn_lookahead/freq),
+                _max, _min = peakdetect(plot_motor_data.steer_input, plot_motor_data.index, lookahead=int((turn_lookahead/1000)*freq),
                                         delta=0.1)
                 
                 mot_fig = plot_motor_data.plot(
@@ -174,15 +174,16 @@ def process_session_motor(rns_data, event_df, motor_channel='Unity_MotorInput', 
                 plt.close()
 
             motor_data = df[(df.index >= timestamp_start) & (df.index <= timestamp_end)]
-            # wheel is 40Hz, so turn_lookahead/freq 750 ms of lookahead and 18 degrees of rotation (10%) empirically does okay
-            _max, _min = peakdetect(motor_data.steer_input, motor_data.index, lookahead=int(turn_lookahead/freq),
+            # wheel is 40Hz, so turn_lookahead==750ms and 18 degrees of rotation (10%) empirically does okay
+            _max, _min = peakdetect(motor_data.steer_input, motor_data.index, lookahead=int((turn_lookahead/1000)*freq),
                                     delta=0.1)
             
             for peak in _max:
                 turn_row = row.to_dict().copy()
-                if turn_row['trial_start_time'] <= peak[0]-preturn/1000 and turn_row['trial_end_time'] >= peak[0]+postturn/1000: # assure there's enough data
+                if turn_row['trial_start_time'] <= peak[0]-preturn/1000 and turn_row['trial_end_time'] >= peak[0]+postturn/1000: # ensure there's enough data
                     turn_row['trial_start_time'] = peak[0]-preturn/1000
                     turn_row['trial_end_time'] = peak[0] # note that this is a misnomer now
+                    turn_row['post_steer_event_raw'] = peak[2]
                     turn_row['turn_type'] = 'left'
                     turns_df.append(turn_row)
             for trough in _min:
@@ -190,6 +191,7 @@ def process_session_motor(rns_data, event_df, motor_channel='Unity_MotorInput', 
                 if turn_row['trial_start_time'] <= trough[0]-preturn/1000 and turn_row['trial_end_time'] >= trough[0]+postturn/1000:
                     turn_row['trial_start_time'] = trough[0]-preturn/1000
                     turn_row['trial_end_time'] = trough[0]
+                    turn_row['post_steer_event_raw'] = trough[2]
                     turn_row['turn_type'] = 'right'
                     turns_df.append(turn_row)
             motor_results = pd.concat([motor_results, np.sum(np.abs(motor_data))], axis=1, ignore_index=True)

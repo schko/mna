@@ -143,8 +143,8 @@ def clean_and_classify(sub_df, classifiers, detect_blink=True, blink_threshold=.
 
 def process_eye(df, timestamp_start=0, timestamp_end=None, detect_blink=True, eye_channel='L', classifiers=['NSLR']):
     if not timestamp_end:
-        timestamp_end = df.index[-1]
-    eye_data = df[(df.index >= timestamp_start) & (df.index <= timestamp_end)]
+        timestamp_end = df.timestamp.iloc[-1]
+    eye_data = df[(df.timestamp >= timestamp_start) & (df.timestamp <= timestamp_end)]
 
     if eye_channel == 'C':  # if combined, try to calculated combined ray
         try:
@@ -157,7 +157,6 @@ def process_eye(df, timestamp_start=0, timestamp_end=None, detect_blink=True, ey
         return eye_data, [[eye_data.timestamp.iloc[0], eye_data.timestamp.iloc[-1]]]
 
     eye_data = get_x_y_deg(eye_data, eye=eye_channel)
-    eye_data = eye_data.reset_index().rename(columns={'index': 'timestamp'})
     eye_data, intervals_nan = clean_and_classify(eye_data, classifiers, detect_blink=detect_blink,
                                                  eye_channel=eye_channel)
     return eye_data, intervals_nan

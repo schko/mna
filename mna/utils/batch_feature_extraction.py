@@ -121,5 +121,5 @@ def clean_up_adadrive_trials(all_dfs):
     # all_dfs_final = all_dfs_final.rename(columns={"Left Pupil Trial Average Diameter": "L Pupil Diameter"})
 
     # remove trials that are too long
-    all_dfs_final = all_dfs_final[all_dfs_final.trial_duration <= 40]
+    all_dfs_final = all_dfs_final[all_dfs_final.trial_duration <= 20]
     return all_dfs_final

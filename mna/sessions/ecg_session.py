@@ -6,7 +6,7 @@ import os
 
 
 def process_session_ecg(rns_data, event_df, low_bpm=40, high_bpm=200, save_path='../output/', ecg_channel='BioSemi',
-                        plot_frequency=20, plot_ecg_snippet=40):
+                        plot_frequency=20, plot_ecg_snippet=40,pretrial_period=0, posttrial_period=0):
     """
     event_df: dataframe with timestamps start and end to iterate over
     low_bpm: minimum bpm values as within range
@@ -32,8 +32,13 @@ def process_session_ecg(rns_data, event_df, low_bpm=40, high_bpm=200, save_path=
             plot_ecg_result = False
         timestamp_start = row['trial_start_time']
         timestamp_end = row['trial_end_time']
+        
+        timestamp_start = row['trial_start_time'] - pretrial_period
+        timestamp_end = row['trial_end_time'] + posttrial_period  # in case the trial marker ends before ECG data
+        
         timestamp_start = max(timestamp_start, ecg_start_time)  # in case we don't have data starting from e.g. 0
         timestamp_end = min(timestamp_end, ecg_end_time)  # in case the trial marker ends before ECG data
+        
         if plot_ecg_snippet:
             plot_timestamp_end = min(timestamp_start + plot_ecg_snippet, timestamp_end)  # plot few seconds of data
         else:

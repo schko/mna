@@ -95,21 +95,61 @@ Experimentally, we have the following order:
 '''
 # experimentally, we get voice input for a trialwe send Unity_TrialInfo, followed immediately by Unity_ChunkInfo
 
-def add_trial_start_time(event_df, offset=0.01):
+def add_trial_start_time(event_df, first_trial_start_time=0, offset=0.001):
     trial_end_times = np.zeros(event_df.shape[0])
     trial_end_times[1:] = event_df.trial_end_time[0:-1]+offset # add a 0.01 second offset since the next trial starts immediately
     event_df.insert(0, "trial_start_time", trial_end_times)
+    event_df.trial_start_time[0] = first_trial_start_time
+    
+def read_event_data(rns_data,  continuous_channel='Unity_MotorInput', remove_id_sessions=[(15, 1), (22, 1)],
+                         trial_df_path='../data/annotated/', override_ppid_sess = False):
+    """
+    Takes directory of trial_dfs.
+    Removed_ids = 15-1 and 22-1 incomplete sessions where participant got sick
+    """
+    first_trial_start_time = rns_data[continuous_channel][1][0]
+    if not override_ppid_sess:
+        tmp_event_df = pd.DataFrame(rns_data['Unity_TrialInfo'][0], columns=rns_data['Unity_TrialInfo'][1],
+                                index=rns_data['Unity_TrialInfo'][2]['ChannelNames']).T
+        ppid = tmp_event_df.iloc[0].ppid
+        session = tmp_event_df.iloc[0].session
+    else:
+        ppid = override_ppid_sess[0]
+        session = override_ppid_sess[1]
 
-def event_data_from_data(rns_data, interrupted_id_sessions=[]):
+    removed_ids = [p[0] for p in remove_id_sessions]
+    removed_sessions = [p[1] for p in remove_id_sessions]
+
+    if ppid in removed_ids and session in removed_sessions:
+        return pd.DataFrame()
+
+    event_df = pd.read_csv(f"{trial_df_path}{int(ppid)}_{int(session)}_trial_df.csv")
+    event_df = event_df.rename(columns={'timestamps':'trial_end_time', 'voice_response': 'spoken_difficulty'})
+    add_trial_start_time(event_df, first_trial_start_time)
+    event_df.insert(1, 'trial_end_time', event_df.pop('trial_end_time'))
+    return event_df
+
+def event_data_from_data(rns_data, ts_fixer, adjust_event_ts = True, adjust_voice_ts = False, ensure_minimum_trial = False, continuous_channel = 'Unity_MotorInput', remove_id_sessions=[(13,1), (15,1), (22,1)], interrupted_id_sessions=[(13,1), (22,1)], offset_parameters=None):
     """
-    Takes raw data from LSL streams and merges TrialInfo, ChunkInfo and AIYVoice info into an event dataframe
+    Takes raw data from LSL streams and merges TrialInfo, ChunkInfo and AIYVoice info into an event dataframe.
+    Applies timestamp fixer (tsfixer) to adjust timestamps.
+    Removed_ids = 13-1 and 22-1: interrupted sessions, no detectable calibration periods nor regular calibration intervals; 15-1 and 22-1 incomplete sessions where participant got sick
     """
+    first_trial_start_time = rns_data[continuous_channel][1][0]
+
     event_df = pd.DataFrame(rns_data['Unity_TrialInfo'][0], columns=rns_data['Unity_TrialInfo'][1],
                   index=rns_data['Unity_TrialInfo'][2]['ChannelNames']).T
     event_df = event_df.reset_index().rename(columns={'index': 'trial_end_time'})
+    
+    removed_ids = [p[0] for p in remove_id_sessions]
+    removed_sessions = [p[1] for p in remove_id_sessions]
+    
     interrupted_ids = [p[0] for p in interrupted_id_sessions]
     interrupted_sessions = [p[1] for p in interrupted_id_sessions]
-    
+
+    if event_df.iloc[0].ppid in removed_ids and event_df.iloc[0].session in removed_sessions:
+        return pd.DataFrame()
+        
     # chunk data is always paired but offset
     if 'Unity_ChunkInfo' in rns_data:
         chunk_df = pd.DataFrame(rns_data['Unity_ChunkInfo'][0], columns=rns_data['Unity_ChunkInfo'][1],
@@ -122,7 +162,7 @@ def event_data_from_data(rns_data, interrupted_id_sessions=[]):
         #                         direction='nearest', tolerance=1)
     else:
         print(f"Unity_ChunkInfo not found")
-        
+    
     if event_df.iloc[0].ppid in interrupted_ids and event_df.iloc[0].session in interrupted_sessions:
         print('FIXING THE EVENT DF SINCE PID', event_df.iloc[0].ppid, 'SESSION', event_df.iloc[0].session, 'WAS INTERRUPTED')
         event_df = event_df.loc[~event_df.duplicated(subset=['ppid','session','block','number_in_block','trial'], keep='first'),:].reset_index(drop=True)
@@ -132,17 +172,73 @@ def event_data_from_data(rns_data, interrupted_id_sessions=[]):
         event_df.loc[last_freak_idx:,'block'] = event_df.loc[last_freak_idx:,'block'] + event_df.loc[last_freak_idx-1,'block']
         event_df.loc[last_freak_idx:,'trial'] = event_df.loc[last_freak_idx:,'trial'] + event_df.loc[last_freak_idx-1,'trial']
         event_df.loc[last_freak_idx:,'damage'] = event_df.loc[last_freak_idx:,'damage'] + event_df.loc[last_freak_idx-1,'damage']
-        
-    add_trial_start_time(event_df)
+    event_df['non_adj_trial_end_time'] = event_df.trial_end_time
+    if adjust_event_ts:
+        feats = pd.DataFrame([event_df.trial_end_time.diff(),
+                              event_df.trial_end_time.diff().shift(1),
+                              event_df.trial_end_time.diff().shift(-1),
+                              event_df.trial_end_time.diff().shift(-2)]).T
+        nan_mask = feats.isna().any(axis=1)
+        ref_start_trial_end = event_df.loc[~nan_mask,'trial_end_time'].iloc[0]
+        first_valid_index = event_df.loc[~nan_mask].index[0]
+        last_valid_index = event_df.loc[~nan_mask].index[-1]
+        feats_na = feats.dropna()
+        pred_offsets = ts_fixer.predict(feats_na.values)
+        cumulative_time_offset = pred_offsets.cumsum()
+        event_df.iloc[first_valid_index:last_valid_index+1,event_df.columns.get_loc("trial_end_time")] = (np.array(cumulative_time_offset)+ref_start_trial_end)
+        # ensure a minimum possible trial
+        if ensure_minimum_trial:
+            trial_end_times = event_df.trial_end_time.copy()
+            trial_dur_threshold = 6 # need at least a minimum of this, realistic, duration
+            for index, row in event_df[1:].iterrows():
+                trial_duration = row.trial_end_time-event_df.iloc[index-1].trial_end_time
+                if trial_duration <= trial_dur_threshold:
+                    new_trial_duration = np.random.normal(trial_dur_threshold+1,1)
+                    adjustment = new_trial_duration - trial_duration
+                    trial_end_times[index:] = trial_end_times[index:] + adjustment
+            event_df.trial_end_time = trial_end_times
+        event_df = event_df.iloc[:last_valid_index+1]
+
+    add_trial_start_time(event_df,first_trial_start_time)
     
     # voice data
     voice_df = pd.DataFrame(rns_data['AIYVoice'][0], columns=rns_data['AIYVoice'][1],
                       index=['spoken_difficulty']).T
+    voice_df = voice_df.reset_index().rename(columns={'index': 'voice_timestamp'})
+    voice_df['non_adj_voice_timestamp'] = voice_df.voice_timestamp
+    if adjust_voice_ts:
+        feats = pd.DataFrame([voice_df.voice_timestamp.diff(),
+                              voice_df.voice_timestamp.diff().shift(1),
+                              voice_df.voice_timestamp.diff().shift(-1),
+                              voice_df.voice_timestamp.diff().shift(-2)]).T
+        nan_mask = feats.isna().any(axis=1)
+        ref_start_trial_end = voice_df.loc[~nan_mask,'voice_timestamp'].iloc[0]
+        first_valid_index = voice_df.loc[~nan_mask].index[0]
+        last_valid_index = voice_df.loc[~nan_mask].index[-1]
+        feats_na = feats.dropna()
+        pred_offsets = ts_fixer.predict(feats_na.values)
+        cumulative_time_offset = pred_offsets.cumsum()
+        voice_df.iloc[first_valid_index:last_valid_index+1,event_df.columns.get_loc("voice_timestamp")] = (np.array(cumulative_time_offset)+ref_start_trial_end)
+        # ensure a minimum possible trial
+        if ensure_minimum_trial:
+            voice_timestamps = voice_df.voice_timestamp.copy()
+            trial_dur_threshold = 6 # need at least a minimum of this, realistic, duration
+            for index, row in voice_df[1:].iterrows():
+                trial_duration = row.voice_timestamp-voice_df.iloc[index-1].voice_timestamp
+                if trial_duration <= trial_dur_threshold:
+                    new_trial_duration = np.random.normal(trial_dur_threshold+1,1)
+                    adjustment = new_trial_duration - trial_duration
+                    voice_timestamps[index:] = voice_timestamps[index:] + adjustment
+            voice_df.voice_timestamp = voice_timestamps
+        voice_df = voice_df.iloc[:last_valid_index+1]
+    
     for index, row in voice_df.iterrows(): # keep the last voice data for each trial
-        event_df.loc[((event_df.trial_start_time < index) & (event_df.trial_end_time >= index)),'spoken_difficulty'] =\
+        event_df.loc[((event_df.trial_start_time < row.voice_timestamp) & (event_df.trial_end_time >= row.voice_timestamp)),'spoken_difficulty'] =\
             row['spoken_difficulty']
-        event_df.loc[((event_df.trial_start_time < index) & (event_df.trial_end_time >= index)), 'voice_timestamp'] = \
-            index
+        event_df.loc[((event_df.trial_start_time < row.voice_timestamp) & (event_df.trial_end_time >= row.voice_timestamp)), 'voice_timestamp'] = \
+            row.voice_timestamp
+        event_df.loc[((event_df.trial_start_time < row.voice_timestamp) & (event_df.trial_end_time >= row.voice_timestamp)), 'non_adj_voice_timestamp'] = \
+            row.non_adj_voice_timestamp
     return event_df
 
 def window_slice(data, window_size, stride, channel_mode='channel_last'):

@@ -52,11 +52,15 @@ def process_session_eye(rns_data, event_df, eye_channel='Unity_ViveSREyeTracking
                                               timestamp_end=timestamp_end, eye_channel='L',
                                               classifiers=classifiers)
         for c in classifiers:
-            if pretrial_period > 0:
+            if pretrial_period > 0 and eye_data.shape[0] > 0:
                 first_valid_segment = eye_data[eye_data.timestamp>=orig_timestamp_start].iloc[0][c+'_Segment']
                 eye_data[c+'_Segment'] = eye_data[c+'_Segment']-first_valid_segment+1
             if posttrial_period > 0:
                 last_valid_segment = eye_data[eye_data.timestamp<=orig_timestamp_end].iloc[0][c+'_Segment']
+        if eye_data.shape[0] == 0:
+            eye_results[classifier].append({})
+            class_onsets[classifier].append({})
+            continue
         eye_data = eye_data[(eye_data.timestamp>=orig_timestamp_start) & (eye_data.timestamp<=orig_timestamp_end)]
         if pretrial_period > 0:
             try:
@@ -221,20 +225,24 @@ def pupil_diameter_evoked(eyetracking_df, event_df, fs, pupil, plot_evoked_pupil
     
     baseline_pupil = np.empty(len(trial_onset.index))
     onset_3sec_pupil = np.empty([len(trial_onset.index),onset_3sec_samples])
-
-    for i in event_df.index:
+    
+    # print(event_df.index)
+    
+    for i, idx in enumerate(event_df.index): 
+        
+        # print(idx, trial_onset[idx], max(eyetracking_df.timestamp))
+        # print(idx, trial_onset[idx], baseline_pupil.shape)
         
         # filter first trial and trial exceed available eyetracking timestamp
-        if (trial_onset[i] == 0) or (trial_onset[i] > max(eyetracking_df.timestamp)): 
+        if (trial_onset[idx]-.2 <= eyetracking_df.timestamp[0]) or (trial_onset[idx] > max(eyetracking_df.timestamp)) or np.isnan(trial_onset[idx]): 
             baseline_pupil[i] = float("NaN")
             onset_3sec_pupil[i,:] = float("NaN")
         else:
-            trial_baseline_pupil = eyetracking_df[pupil][(eyetracking_df.timestamp >= trial_onset[i]-.2) & 
-                                                         (eyetracking_df.timestamp < trial_onset[i])].replace(-1, np.nan)
+            trial_baseline_pupil = eyetracking_df[pupil][(eyetracking_df.timestamp >= trial_onset[idx]-.2) & 
+                                                         (eyetracking_df.timestamp < trial_onset[idx])].replace(-1, np.nan)
             
-            trial_onset_3sec_pupil = eyetracking_df[pupil][(eyetracking_df.timestamp >= trial_onset[i]) & 
-                                                        (eyetracking_df.timestamp < trial_onset[i]+3)].replace(-1, np.nan)
-            
+            trial_onset_3sec_pupil = eyetracking_df[pupil][(eyetracking_df.timestamp >= trial_onset[idx]) & 
+                                                        (eyetracking_df.timestamp < trial_onset[idx]+3)].replace(-1, np.nan)
             # fill in missing values through interpolation
             trial_baseline_pupil = trial_baseline_pupil.interpolate(method ='linear', 
                                                                     limit_direction ='forward')

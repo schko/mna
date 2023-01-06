@@ -109,9 +109,10 @@ def clean_up_adadrive_trials(all_dfs):
     # remove practice trials
     all_dfs_final = all_dfs.copy()
     all_dfs_final = all_dfs_final[all_dfs_final.block_condition!='practice']
-
-    all_dfs_final['ppid_session'] = all_dfs_final['ppid'].astype(int).astype(str) + '_' + \
-                                                + all_dfs_final['session'].astype(int).astype(str)
+    for col in ['ppid','session','block','number_in_block','trial']:
+        all_dfs_final[col] = all_dfs_final[col].astype(int)
+    all_dfs_final['ppid_session'] = all_dfs_final['ppid'].astype(str) + '_' + \
+                                                + all_dfs_final['session'].astype(str)
 
     all_dfs_final.columns = all_dfs_final.columns.str.replace('.','_')
     all_dfs_final.columns = all_dfs_final.columns.str.replace('measures_','')
@@ -122,4 +123,10 @@ def clean_up_adadrive_trials(all_dfs):
 
     # remove trials that are too long
     all_dfs_final = all_dfs_final[all_dfs_final.trial_duration <= 20]
+    
+    # ECG outlier detection
+    for c in ['bpm', 'ibi', 'sdnn', 'sdsd', 'rmssd', 'pnn20', 'pnn50', 'hr_mad', 'sd1', 'sd2']:
+        all_dfs_final.loc[all_dfs_final.bpm < 50, c] = np.nan
+        all_dfs_final.loc[all_dfs_final.bpm > 200, c] = np.nan
+    
     return all_dfs_final

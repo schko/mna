@@ -201,6 +201,16 @@ def process_session_motor(rns_data, event_df, motor_channel='Unity_MotorInput', 
         for mot_input_col in motor_results.columns:
             event_df[f"abs_sum_delta_{mot_input_col}"] = motor_results[mot_input_col]
             turns_df[f"abs_sum_delta_{mot_input_col}"] = motor_results[mot_input_col]
+        
+        all_steer_events_finalized = turns_df['post_steer_event_raw']
+        norm_pos = lambda wheel_pos: np.asarray(wheel_pos)/np.asarray(wheel_pos[0])
+        final_pos = lambda final_wheel_pos: np.asarray(final_wheel_pos[-1])-np.asarray(final_wheel_pos[0])
+
+        norm_pos_df = all_steer_events_finalized.apply(norm_pos)
+        turns_df["Steer_Wheel_Degree"] = all_steer_events_finalized.apply(final_pos)
+        turns_df["Abs_Steer_Wheel_Degree"] = abs(all_steer_events_finalized.apply(final_pos))
+        turns_df["Steer_Wheel_Degree_Categorical"] = pd.qcut(turns_df.Abs_Steer_Wheel_Degree, 2, labels=["Low", "High"]) #2=High, 1 =Low
+        turns_df["Steer_Wheel_Degree_Encoded"] = turns_df.Steer_Wheel_Degree_Categorical.replace({'High': 2, 'Low': 1})
         return event_df, turns_df
 
     return event_df, turns_df

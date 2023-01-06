@@ -100,8 +100,7 @@ def add_trial_start_time(event_df, first_trial_start_time=0, offset=0.001):
     trial_end_times[1:] = event_df.trial_end_time[0:-1]+offset # add a 0.01 second offset since the next trial starts immediately
     event_df.insert(0, "trial_start_time", trial_end_times)
     event_df.trial_start_time[0] = first_trial_start_time
-
-
+    
 def read_event_data(rns_data,  continuous_channel='Unity_MotorInput', remove_id_sessions=[(15, 1), (22, 1)],
                          trial_df_path='../data/annotated/', override_ppid_sess = False):
     """

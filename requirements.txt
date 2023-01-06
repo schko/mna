@@ -12,3 +12,5 @@ pivottablejs
 remodnav
 seaborn
 jupyterlab
+mne-connectivity
+ipykernel

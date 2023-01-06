@@ -39,8 +39,9 @@ def process_session_eeg(rns_data, event_df, event_column='spoken_difficulty_enco
 
     raw = mne.io.RawArray(df.T * 1e-6, info)
     raw = raw.pick('eeg')
+    raw = raw.set_eeg_reference(ref_channels='average',projection=True)
     if average_reference:
-        raw = raw.set_eeg_reference(ref_channels='average')  # set average reference
+        raw = raw.apply_proj()  # set average reference
     if low_cut or hi_cut:
         raw.filter(l_freq=low_cut, h_freq=hi_cut)
     if downsampling:
@@ -105,10 +106,12 @@ def process_session_eeg(rns_data, event_df, event_column='spoken_difficulty_enco
         eog_idx = None
     
     def process_session_eeg_inner(raw, event_recognized_df, event_df):
-        
-        epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=tmin, tmax=tmax, baseline=baseline, preload=True, 
-                                on_missing='warn', metadata=event_recognized_df)
-            
+        if average_reference:
+            epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=tmin, tmax=tmax, baseline=baseline, preload=True, 
+                                    on_missing='warn', metadata=event_recognized_df)
+        else:
+            epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=tmin, tmax=tmax, baseline=baseline, preload=True, proj='delayed',
+                                    on_missing='warn', metadata=event_recognized_df)
         event_recognized_df = event_recognized_df[[e==() for e in epochs.drop_log]] # only keep good epochs in event_df
         reject_log = None
         

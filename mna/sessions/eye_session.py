@@ -52,11 +52,15 @@ def process_session_eye(rns_data, event_df, eye_channel='Unity_ViveSREyeTracking
                                               timestamp_end=timestamp_end, eye_channel='L',
                                               classifiers=classifiers)
         for c in classifiers:
-            if pretrial_period > 0:
+            if pretrial_period > 0 and eye_data.shape[0] > 0:
                 first_valid_segment = eye_data[eye_data.timestamp>=orig_timestamp_start].iloc[0][c+'_Segment']
                 eye_data[c+'_Segment'] = eye_data[c+'_Segment']-first_valid_segment+1
             if posttrial_period > 0:
                 last_valid_segment = eye_data[eye_data.timestamp<=orig_timestamp_end].iloc[0][c+'_Segment']
+        if eye_data.shape[0] == 0:
+            eye_results[classifier].append({})
+            class_onsets[classifier].append({})
+            continue
         eye_data = eye_data[(eye_data.timestamp>=orig_timestamp_start) & (eye_data.timestamp<=orig_timestamp_end)]
         if pretrial_period > 0:
             try:
@@ -225,7 +229,7 @@ def pupil_diameter_evoked(eyetracking_df, event_df, fs, pupil, plot_evoked_pupil
     for i in event_df.index:
         
         # filter first trial and trial exceed available eyetracking timestamp
-        if (trial_onset[i] == 0) or (trial_onset[i] > max(eyetracking_df.timestamp)): 
+        if (trial_onset[i]-.2 <= eyetracking_df.timestamp[0]) or (trial_onset[i] > max(eyetracking_df.timestamp)): 
             baseline_pupil[i] = float("NaN")
             onset_3sec_pupil[i,:] = float("NaN")
         else:

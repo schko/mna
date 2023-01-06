@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/mna.iml" filepath="$PROJECT_DIR$/.idea/mna.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/from_gcp.iml" filepath="$PROJECT_DIR$/.idea/from_gcp.iml" />
     </modules>
   </component>
 </project>

@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="70e551bc-d84d-4808-8405-3258dace1d6f" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/notebooks/archive/adadrive_analysis.ipynb" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/notebooks/embc_paper/batch_classification.ipynb" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/notebooks/embc_paper/single_sbj_classification.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/mna.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/other.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/LSLPresets/BAlertX24.json" beforeDir="false" afterPath="$PROJECT_DIR$/mna/LSLPresets/BAlertX24.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/LSLPresets/BioSemi.json" beforeDir="false" afterPath="$PROJECT_DIR$/mna/LSLPresets/BioSemi.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/LSLPresets/DEAPBioSemi.json" beforeDir="false" afterPath="$PROJECT_DIR$/mna/LSLPresets/DEAPBioSemi.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/LSLPresets/Dummy_sensor.json" beforeDir="false" afterPath="$PROJECT_DIR$/mna/LSLPresets/Dummy_sensor.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/LSLPresets/GoogleAIY.json" beforeDir="false" afterPath="$PROJECT_DIR$/mna/LSLPresets/GoogleAIY.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/LSLPresets/IndexPenEventMarker.json" beforeDir="false" afterPath="$PROJECT_DIR$/mna/LSLPresets/IndexPenEventMarker.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/LSLPresets/NEDEEventMarkers.json" beforeDir="false" afterPath="$PROJECT_DIR$/mna/LSLPresets/NEDEEventMarkers.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/LSLPresets/NIRSport2.json" beforeDir="false" afterPath="$PROJECT_DIR$/mna/LSLPresets/NIRSport2.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/LSLPresets/OpenBCICyton8.json" beforeDir="false" afterPath="$PROJECT_DIR$/mna/LSLPresets/OpenBCICyton8.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/LSLPresets/PubSub.json" beforeDir="false" afterPath="$PROJECT_DIR$/mna/LSLPresets/PubSub.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/LSLPresets/ReNaEventMarker.json" beforeDir="false" afterPath="$PROJECT_DIR$/mna/LSLPresets/ReNaEventMarker.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/LSLPresets/ReNaItemMarker.json" beforeDir="false" afterPath="$PROJECT_DIR$/mna/LSLPresets/ReNaItemMarker.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/LSLPresets/UnityChunkInfo.json" beforeDir="false" afterPath="$PROJECT_DIR$/mna/LSLPresets/UnityChunkInfo.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/LSLPresets/UnityEyeData.json" beforeDir="false" afterPath="$PROJECT_DIR$/mna/LSLPresets/UnityEyeData.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/LSLPresets/UnityHandTracking.json" beforeDir="false" afterPath="$PROJECT_DIR$/mna/LSLPresets/UnityHandTracking.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/LSLPresets/UnityHeadTracking.json" beforeDir="false" afterPath="$PROJECT_DIR$/mna/LSLPresets/UnityHeadTracking.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/LSLPresets/UnityMotorInput.json" beforeDir="false" afterPath="$PROJECT_DIR$/mna/LSLPresets/UnityMotorInput.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/LSLPresets/UnityRotationWheelEventMarkers.json" beforeDir="false" afterPath="$PROJECT_DIR$/mna/LSLPresets/UnityRotationWheelEventMarkers.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/LSLPresets/UnityTrialInfo.json" beforeDir="false" afterPath="$PROJECT_DIR$/mna/LSLPresets/UnityTrialInfo.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/LSLPresets/UnityVisualSearchEventMarkers.json" beforeDir="false" afterPath="$PROJECT_DIR$/mna/LSLPresets/UnityVisualSearchEventMarkers.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/LSLPresets/VarjoEyeData.json" beforeDir="false" afterPath="$PROJECT_DIR$/mna/LSLPresets/VarjoEyeData.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/LSLPresets/VarjoEyeDataComplete.json" beforeDir="false" afterPath="$PROJECT_DIR$/mna/LSLPresets/VarjoEyeDataComplete.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/LSLPresets/ViveEyeData.json" beforeDir="false" afterPath="$PROJECT_DIR$/mna/LSLPresets/ViveEyeData.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/mna/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/modalities/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/mna/modalities/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/modalities/ecg_process.py" beforeDir="false" afterPath="$PROJECT_DIR$/mna/modalities/ecg_process.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/modalities/eeg_process.py" beforeDir="false" afterPath="$PROJECT_DIR$/mna/modalities/eeg_process.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/modalities/eye_process.py" beforeDir="false" afterPath="$PROJECT_DIR$/mna/modalities/eye_process.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/sessions/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/mna/sessions/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/sessions/ecg_session.py" beforeDir="false" afterPath="$PROJECT_DIR$/mna/sessions/ecg_session.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/sessions/eeg_session.py" beforeDir="false" afterPath="$PROJECT_DIR$/mna/sessions/eeg_session.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/sessions/eye_session.py" beforeDir="false" afterPath="$PROJECT_DIR$/mna/sessions/eye_session.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/sessions/motor_session.py" beforeDir="false" afterPath="$PROJECT_DIR$/mna/sessions/motor_session.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/utils/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/mna/utils/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/utils/batch_feature_extraction.py" beforeDir="false" afterPath="$PROJECT_DIR$/mna/utils/batch_feature_extraction.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/utils/gcp_data_format.py" beforeDir="false" afterPath="$PROJECT_DIR$/mna/utils/gcp_data_format.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mna/utils/rnapp_data_format.py" beforeDir="false" afterPath="$PROJECT_DIR$/mna/utils/rnapp_data_format.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/adadrive_analysis.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/batch_classification.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/evoked_pupil_diameter.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/gcp_data_read.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/archive/gcp_data_read.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/process_2d_session.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/misc/process_2d_session.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/process_session.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/motor_paper/process_session.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/single_sbj_classification.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sample_data/~$1imageSubset.xlsx" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ExportToHTMLSettings">
+    <option name="printScope" value="1" />
+    <option name="OPEN_IN_BROWSER" value="true" />
+    <option name="OUTPUT_DIRECTORY" value="$USER_HOME$/Downloads" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectId" id="2Ikfipkbzbq1VQCSS1uBvb1YKH5" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="1" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/schko/Library/CloudStorage/GoogleDrive-munna@fractal.nyc/Shared drives/AdaDrive Data/from_gcp/notebooks/motor_paper&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/notebooks/motor_paper" />
+      <recent name="$PROJECT_DIR$/notebooks" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/notebooks/archive" />
+      <recent name="$PROJECT_DIR$/notebooks/misc" />
+      <recent name="$PROJECT_DIR$/notebooks/embc_paper" />
+      <recent name="$PROJECT_DIR$/notebooks/motor_paper" />
+      <recent name="$PROJECT_DIR$/notebooks" />
+    </key>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="70e551bc-d84d-4808-8405-3258dace1d6f" name="Changes" comment="" />
+      <created>1670730643194</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1670730643194</updated>
+      <workItem from="1670730653454" duration="12070000" />
+      <workItem from="1670781277274" duration="23513000" />
+      <workItem from="1670860932298" duration="4906000" />
+      <workItem from="1671170698315" duration="316000" />
+      <workItem from="1671171491080" duration="11748000" />
+      <workItem from="1671677380082" duration="1236000" />
+      <workItem from="1671678622229" duration="2382000" />
+      <workItem from="1671839996426" duration="9000" />
+      <workItem from="1671942586611" duration="24126000" />
+      <workItem from="1672181702576" duration="3330000" />
+      <workItem from="1672206071440" duration="1112000" />
+      <workItem from="1672503685217" duration="6000" />
+      <workItem from="1672604290453" duration="3670000" />
+      <workItem from="1672609402100" duration="476000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>

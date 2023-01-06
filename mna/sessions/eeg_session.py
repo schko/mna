@@ -105,58 +105,15 @@ def process_session_eeg(rns_data, event_df, event_column='spoken_difficulty_enco
         eog_idx = None
     
     def process_session_eeg_inner(raw, event_recognized_df, event_df):
-    
-        # epochs = mne.Epochs(raw, events, event_id=event_dict, tmin= -3.2, tmax=0, baseline =(-3.2, -3.0), preload=True, 
-        #                     on_missing='warn')
+        
         epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=tmin, tmax=tmax, baseline=baseline, preload=True, 
-                                on_missing='warn')
+                                on_missing='warn', metadata=event_recognized_df)
             
         event_recognized_df = event_recognized_df[[e==() for e in epochs.drop_log]] # only keep good epochs in event_df
         reject_log = None
         
         # EEG Feature Extraction - 24 features
         extracted_24_features_df = eeg_features(epochs, event_recognized_df, bands_limits, eeg_channel_names, freq, normalize_pow_freq=normalize_pow_freq)
-        
-#         win_size = 1024
-#         bands = np.asarray(bands_limits)
-#         band_intervals = list(zip(bands[:-1], bands[1:]))
-#         band_power_epochs = np.empty([len(epochs), len(eeg_channel_names)*len(band_intervals)])
-#         eeg_channel_band_power = [f"{chan_name}_{each_band[0]}-{each_band[1]}_Hz_Power"
-#                                   for chan_name in eeg_channel_names
-#                                   for each_band in band_intervals]
-#         hjorth_mobility = np.empty([len(epochs), len(eeg_channel_names)])
-#         eeg_channel_hjorth_mobility = [f"{chan_name}_Hjorth_Mobility" for chan_name in eeg_channel_names]
-
-
-#         for i in range(len(epochs)):
-#             data_mne = np.squeeze(epochs[i].get_data())
-
-#             # EEG bands
-#             pow_freq_band = compute_pow_freq_bands(sfreq=freq, data=data_mne, freq_bands=bands, normalize=False,
-#                                                         psd_params={'welch_n_fft': win_size, 'welch_n_per_seg': win_size})
-#             band_power_epochs[i, :] = pow_freq_band
-
-#             # Hjorth Mobility
-#             hjorth_mobility[i,:] = compute_hjorth_mobility(data_mne)
-
-
-#         # Band power feature extraction with SCIPY.SIGNAL.WELCH (Reference: https://raphaelvallat.com/bandpower.html)
-#         # for i in range(len(epochs)):
-#         #     for ii in range(64):
-#         #         data_signal = np.squeeze(epochs[i].get_data())
-#         #         freqs, psd = signal.welch(data_signal[ii], freq, nfft=win_size, nperseg=win_size, window='hamming')
-#         #
-#         #         freq_res = freqs[1] - freqs[0]
-#         #
-#         #         band_power = simps(psd[(freqs >= band[0]) & (freqs <= band[1])], dx=freq_res)
-#         #         # band_power = trapezoid(psd[(freqs >= band[0]) & (freqs <= band[1])], dx=freq_res)
-#         #
-#         #         band_power_epochs[i, ii] = band_power
-
-#         band_power_df = pd.DataFrame(data=band_power_epochs, index=event_recognized_df.index,
-#                                      columns=eeg_channel_band_power)
-#         hjorth_mobility_df = pd.DataFrame(data=hjorth_mobility, index=event_recognized_df.index,
-#                                      columns=eeg_channel_hjorth_mobility)
 
         if len(epochs) < 10: # we need at least 10 epochs to run autoreject for cross validation
             bad_epochs = pd.Series(np.full(len(event_df),np.NAN), index=event_df.index, name='autorejected')
@@ -264,13 +221,20 @@ def eeg_features(epochs, event_recognized_df, bands_limits, eeg_channel_names, f
     # band power calculation
     for i in range(len(epochs)):
         eeg_data = np.squeeze(epochs.get_data(item=i))
+        # Welch's Method
+        # band_power = compute_pow_freq_bands(sfreq=fs, data=eeg_data, freq_bands=bands, normalize=normalize_pow_freq,
+        #                                     psd_params={'welch_n_fft': win_size, 'welch_n_per_seg': win_size})
+        # Multitaper Method
         band_power = compute_pow_freq_bands(sfreq=fs, data=eeg_data, freq_bands=bands, normalize=normalize_pow_freq,
-                                            psd_params={'welch_n_fft': win_size, 'welch_n_per_seg': win_size})
+                                            psd_method = 'multitaper')
         band_power_all[i, :] = band_power
     
-    # Other features calculation
+    # Other features calculation (hjorth activity, mobility, and complexity; Higuchi FD; Sample entropy)
     for index, freq_band in enumerate(band_intervals):
+        
+        # filter applies to epochs copy to prevent modifying original epochs
         band_specific_epoch = np.squeeze(epochs.copy().filter(freq_band[0],freq_band[1], verbose = False).get_data())
+        
         for i in range(len(epochs.events)):
             for ii in range(64):
                 # band-specific Hjorth activity, mobility and complexity
@@ -283,6 +247,7 @@ def eeg_features(epochs, event_recognized_df, bands_limits, eeg_channel_names, f
 
                 # band-specific sample entropy
                 sample_entropy[i,ii] = sampEn(band_specific_epoch[i][ii])
+                
     # concatenate each band specific features into a single matrix 
         if index == 0:
             hjorth_activity_all = hjorth_activity

@@ -5,6 +5,7 @@ ipython
 matplotlib
 mne
 mne_features
+git+https://gitlab.com/nslr/nslr
 git+https://github.com/pupil-labs/nslr-hmm
 numpy
 pandas
@@ -14,3 +15,4 @@ seaborn
 jupyterlab
 mne-connectivity
 ipykernel
+eeglib

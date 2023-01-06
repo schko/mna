@@ -33,7 +33,8 @@ def get_relevant_labels_mappings(path_to_base_package, regions_in_activity=None)
         data = f.read()
     brodmann_mappings = json.loads(data, object_hook=lambda d: {int(k) if k.isdigit() else k: v for k, v in d.items()})
     if regions_in_activity is None:
-        regions_in_activity = ['premotor', 'intermediate_frontal', 'dlpfc']  # should map to the brodmann_area_to_func
+        regions_in_activity = ['premotor', 'intermediate_frontal', 'dlpfc', 'ventral_anterior_cingulate','dorsal_anterior_cingulate','ventral_posterior_cingulate',
+        'dorsal_posterior_cingulate','superior_parietal','striate', 'parastriate','peristriate','middle_frontal']  # should map to the brodmann_area_to_func
         # json file and the corresponding brodmann_mappings dict
     elif regions_in_activity is 'all':
         regions_in_activity = list(brodmann_mappings.values()) # use all regions
@@ -48,10 +49,6 @@ def get_relevant_labels_mappings(path_to_base_package, regions_in_activity=None)
     return rel_labels, rel_mappings
 
 
-def get_relevant_channels():
-    rel_regions = {'premotor_regions': ['FC3', 'FC1', 'FCz', 'FC2', 'FC4'], 'dorsolateral_prefrontal': ['AF3', 'AFz', 'AF4'], 'intermediate_frontal': ['F3', 'F1', 'Fz', 'F2', 'F4']}
-    all_regions = sum(rel_regions.values(),[])
-    return rel_regions, all_regions
 def get_relevant_channels():
     rel_regions = {'premotor_regions': ['FC3', 'FC1', 'FCz', 'FC2', 'FC4'], 'dorsolateral_prefrontal': ['AF3', 'AFz', 'AF4'], 'intermediate_frontal': ['F3', 'F1', 'Fz', 'F2', 'F4']}
     all_regions = sum(rel_regions.values(),[])

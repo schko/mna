@@ -54,7 +54,3 @@ def get_relevant_channels():
     rel_regions = {'premotor_regions': ['FC3', 'FC1', 'FCz', 'FC2', 'FC4'], 'dorsolateral_prefrontal': ['AF3', 'AFz', 'AF4'], 'intermediate_frontal': ['F3', 'F1', 'Fz', 'F2', 'F4']}
     all_regions = sum(rel_regions.values(),[])
     return rel_regions, all_regions
-def get_relevant_channels():
-    rel_regions = {'premotor_regions': ['FC3', 'FC1', 'FCz', 'FC2', 'FC4'], 'dorsolateral_prefrontal': ['AF3', 'AFz', 'AF4'], 'intermediate_frontal': ['F3', 'F1', 'Fz', 'F2', 'F4']}
-    all_regions = sum(rel_regions.values(),[])
-    return rel_regions, all_regions

@@ -39,6 +39,7 @@ def get_relevant_labels_mappings(path_to_base_package, regions_in_activity=None)
         # json file and the corresponding brodmann_mappings dict
     elif regions_in_activity is 'all':
         regions_in_activity = list(brodmann_mappings.values()) # use all regions
+    
     annot_labels = mne.read_labels_from_annot('fsaverage',parc='PALS_B12_Brodmann')[5:87] # only include the brodmann areas by num
     rel_labels = [] # relevant labels
     rel_mappings = {}
